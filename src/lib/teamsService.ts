@@ -7,15 +7,17 @@ export interface Team {
   clubId: string;
   name: string;
   category: string;
+  sportType?: string; // Ej: 'Fútbol', 'Baloncesto'
   createdAt: string;
   playerIds: string[]; // UIDs of players assigned to this team
 }
 
-export const createTeam = async (clubId: string, name: string, category: string = 'Sin categoría'): Promise<Team> => {
+export const createTeam = async (clubId: string, name: string, category: string = 'Sin categoría', sportType: string = 'Fútbol'): Promise<Team> => {
   const newTeam: Omit<Team, 'id'> = {
     clubId,
     name,
     category,
+    sportType,
     createdAt: new Date().toISOString(),
     playerIds: []
   };

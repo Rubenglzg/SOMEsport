@@ -6,7 +6,7 @@ const admin = require("firebase-admin");
 admin.initializeApp();
 // Función para eliminar un usuario de Auth y Firestore
 exports.deleteUserAccountV2 = (0, https_1.onCall)(async (request) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     // Verificar que el usuario está autenticado
     if (!request.auth) {
         throw new https_1.HttpsError('unauthenticated', 'Debes estar autenticado para realizar esta acción.');
@@ -41,7 +41,15 @@ exports.deleteUserAccountV2 = (0, https_1.onCall)(async (request) => {
             throw new https_1.HttpsError('permission-denied', 'No tienes permisos para borrar a este usuario.');
         }
         // Proceder al borrado
-        await admin.auth().deleteUser(uid);
+        try {
+            await admin.auth().deleteUser(uid);
+        }
+        catch (authError) {
+            // Ignorar si el usuario no existe en Auth (ej: pre-registros sin credenciales)
+            if (authError.code !== 'auth/user-not-found' && authError.message !== 'Requested entity was not found.' && !((_d = authError.message) === null || _d === void 0 ? void 0 : _d.includes('user-not-found'))) {
+                throw authError;
+            }
+        }
         await db.collection('users').doc(uid).delete();
         return { success: true, message: 'Usuario eliminado correctamente.' };
     }

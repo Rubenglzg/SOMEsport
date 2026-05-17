@@ -1,8 +1,22 @@
-import { useState, useEffect } from 'react';
-import { Shield, Plus, X, Loader2, Trash2, Save } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Shield, Plus, X, Loader2, Trash2, Save, Search, Filter } from 'lucide-react';
 import { getPlayersByClub } from '../../lib/userService';
 import { getTeamsByClub, createTeam, deleteTeam, assignPlayerToTeam, removePlayerFromTeam, type Team } from '../../lib/teamsService';
 import { useAuthStore, type UserProfile } from '../../store/authStore';
+
+export const normalizeSport = (sport: string | undefined | null): string => {
+  if (!sport) return '';
+  const s = sport.toLowerCase().trim();
+  if (s === 'soccer' || s === 'fútbol' || s === 'futbol') return 'Fútbol';
+  if (s === 'basketball' || s === 'baloncesto') return 'Baloncesto';
+  if (s === 'futsal' || s === 'futbol-sala' || s === 'fútbol sala' || s === 'futbol sala') return 'Fútbol Sala';
+  if (s === 'esports' || s === 'electronic sports') return 'eSports';
+  if (s === 'voleibol' || s === 'volleyball') return 'Voleibol';
+  if (s === 'padel' || s === 'pádel') return 'Pádel';
+  if (s === 'tennis' || s === 'tenis') return 'Tenis';
+  if (s === 'natación' || s === 'swimming') return 'Natación';
+  return sport;
+};
 
 export function ClubTeamsPage() {
   const profile = useAuthStore((state) => state.profile);
@@ -13,15 +27,21 @@ export function ClubTeamsPage() {
 
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamSport, setNewTeamSport] = useState(profile?.activeSports?.[0] || 'Fútbol');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  
+  // Filters and Search
+  const [teamSportFilter, setTeamSportFilter] = useState('all');
+  const [playerSearchQuery, setPlayerSearchQuery] = useState('');
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const targetClubId = profile?.role === 'staff' ? profile.clubId : profile?.uid;
+    if (!targetClubId) return;
     setLoading(true);
     try {
       const [playersData, teamsData] = await Promise.all([
-        getPlayersByClub(profile.uid),
-        getTeamsByClub(profile.uid)
+        getPlayersByClub(targetClubId),
+        getTeamsByClub(targetClubId)
       ]);
       setPlayers(playersData);
       setTeams(teamsData);
@@ -32,14 +52,29 @@ export function ClubTeamsPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [profile?.uid]);
+  useEffect(() => {
+    const targetClubId = profile?.role === 'staff' ? profile.clubId : profile?.uid;
+    if (targetClubId) {
+      loadData();
+    }
+  }, [profile?.uid, profile?.clubId]);
+
+  useEffect(() => {
+    if (teams.length > 0 && !selectedTeam) {
+      if (profile?.role === 'staff' && profile.teamId) {
+        const assigned = teams.find(t => t.id === profile.teamId);
+        if (assigned) setSelectedTeam(assigned);
+      }
+    }
+  }, [teams, profile, selectedTeam]);
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.uid) return;
+    const targetClubId = profile?.role === 'staff' ? profile.clubId : profile?.uid;
+    if (!targetClubId || profile?.role === 'staff') return;
     setFormLoading(true);
     try {
-      await createTeam(profile.uid, newTeamName);
+      await createTeam(targetClubId, newTeamName, 'Sin categoría', newTeamSport);
       setShowTeamModal(false);
       setNewTeamName('');
       await loadData();
@@ -52,6 +87,7 @@ export function ClubTeamsPage() {
   };
 
   const handleDeleteTeam = async (teamId: string) => {
+    if (profile?.role === 'staff') return;
     if (!window.confirm("¿Seguro que quieres borrar este equipo?")) return;
     try {
       await deleteTeam(teamId);
@@ -82,6 +118,27 @@ export function ClubTeamsPage() {
     }
   };
 
+  const filteredTeams = useMemo(() => {
+    let list = teams;
+    if (profile?.role === 'staff') {
+      if (profile.teamId) {
+        list = teams.filter(t => t.id === profile.teamId);
+      } else if (profile.sportType) {
+        list = teams.filter(t => normalizeSport(t.sportType) === normalizeSport(profile.sportType));
+      }
+    }
+    return list.filter(t => teamSportFilter === 'all' ? true : normalizeSport(t.sportType) === normalizeSport(teamSportFilter));
+  }, [teams, teamSportFilter, profile]);
+
+  const filteredPlayers = useMemo(() => {
+    // Solo mostrar "Fichas" (jugadores) para asignar, y filtrar por búsqueda
+    return players.filter(p => {
+      if (p.accountType !== 'jugador') return false;
+      if (!playerSearchQuery) return true;
+      return p.name?.toLowerCase().includes(playerSearchQuery.toLowerCase());
+    });
+  }, [players, playerSearchQuery]);
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-12">
       {/* Header */}
@@ -95,12 +152,14 @@ export function ClubTeamsPage() {
           </h1>
           <p className="text-slate-500 mt-2 text-base">Crea equipos y asigna jugadores por categorías.</p>
         </div>
-        <button
-          onClick={() => setShowTeamModal(true)}
-          className="inline-flex items-center gap-2 bg-brand-600 text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-brand-500 transition-all shadow-lg shadow-brand-500/30"
-        >
-          <Plus className="w-5 h-5" /> Crear Equipo
-        </button>
+        {profile?.role !== 'staff' && (
+          <button
+            onClick={() => setShowTeamModal(true)}
+            className="inline-flex items-center gap-2 bg-brand-600 text-white px-5 py-3 rounded-xl text-sm font-bold hover:bg-brand-500 transition-all shadow-lg shadow-brand-500/30"
+          >
+            <Plus className="w-5 h-5" /> Crear Equipo
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -109,12 +168,36 @@ export function ClubTeamsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Teams List */}
           <div className="lg:col-span-1 space-y-4">
-            {teams.length === 0 ? (
+            
+            {/* Team Filters */}
+            {(() => {
+              const sportsList = Array.from(new Set(
+                (profile?.activeSports && profile.activeSports.length > 0
+                  ? profile.activeSports
+                  : (profile?.sportType ? [profile.sportType] : ['Fútbol'])
+                ).map(normalizeSport)
+              ));
+              return (
+                <div className="relative mb-4">
+                  <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <select 
+                    value={teamSportFilter} 
+                    onChange={(e) => setTeamSportFilter(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 transition-all text-sm font-semibold text-slate-700 shadow-sm"
+                  >
+                    <option value="all">Todos los Deportes</option>
+                    {sportsList.map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                </div>
+              );
+            })()}
+
+            {filteredTeams.length === 0 ? (
               <div className="text-center p-8 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
                 <p className="text-slate-500">No has creado ningún equipo.</p>
               </div>
             ) : (
-              teams.map(team => (
+              filteredTeams.map(team => (
                 <div
                   key={team.id}
                   onClick={() => setSelectedTeam(team)}
@@ -125,15 +208,20 @@ export function ClubTeamsPage() {
                   }`}
                 >
                   <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-slate-900 text-lg">{team.name}</h3>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteTeam(team.id!); }}
-                      className="text-slate-400 hover:text-red-600 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div>
+                      <h3 className="font-bold text-slate-900 text-lg">{team.name}</h3>
+                      {team.sportType && <span className="text-[10px] uppercase font-bold text-slate-500">{normalizeSport(team.sportType)}</span>}
+                    </div>
+                    {profile?.role !== 'staff' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleDeleteTeam(team.id!); }}
+                        className="text-slate-400 hover:text-red-600 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
                   </div>
-                  <p className="text-sm text-slate-500 font-medium">{team.playerIds.length} jugadores</p>
+                  <p className="text-sm text-slate-500 font-medium mt-2">{team.playerIds.length} jugadores</p>
                 </div>
               ))
             )}
@@ -143,23 +231,35 @@ export function ClubTeamsPage() {
           <div className="lg:col-span-2">
             {selectedTeam ? (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-6 border-b border-slate-100 bg-slate-50">
-                  <h3 className="text-lg font-bold text-slate-900">Plantilla: {selectedTeam.name}</h3>
-                  <p className="text-sm text-slate-500">Selecciona o desmarca los jugadores para asignarlos a este equipo.</p>
+                <div className="p-6 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">Plantilla: {selectedTeam.name}</h3>
+                    <p className="text-sm text-slate-500">Selecciona o desmarca los jugadores para asignarlos.</p>
+                  </div>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input 
+                      type="text" 
+                      placeholder="Buscar jugador..." 
+                      value={playerSearchQuery}
+                      onChange={(e) => setPlayerSearchQuery(e.target.value)}
+                      className="w-full sm:w-64 pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500 transition-all text-sm"
+                    />
+                  </div>
                 </div>
                 <div className="p-6">
                   <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2">
-                    {players.map(player => {
+                    {filteredPlayers.map(player => {
                       const isAssigned = selectedTeam.playerIds.includes(player.uid!);
                       return (
-                        <div key={player.uid} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors">
+                        <div key={player.uid} className={`flex items-center justify-between p-3 rounded-xl border transition-colors ${isAssigned ? 'border-brand-200 bg-brand-50/30' : 'border-slate-100 hover:bg-slate-50'}`}>
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center font-bold text-slate-600 text-xs">
                               {player.name?.charAt(0).toUpperCase()}
                             </div>
                             <div>
                               <p className="font-bold text-slate-900">{player.name}</p>
-                              <p className="text-xs text-slate-500 capitalize">{player.accountType}</p>
+                              {player.category && <p className="text-[10px] text-slate-500 uppercase">{player.category}</p>}
                             </div>
                           </div>
                           <button
@@ -175,8 +275,8 @@ export function ClubTeamsPage() {
                         </div>
                       );
                     })}
-                    {players.length === 0 && (
-                      <p className="text-center text-slate-500 py-4">No hay jugadores registrados.</p>
+                    {filteredPlayers.length === 0 && (
+                      <p className="text-center text-slate-500 py-4">No hay jugadores que coincidan con la búsqueda.</p>
                     )}
                   </div>
                 </div>
@@ -207,6 +307,22 @@ export function ClubTeamsPage() {
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nombre del Equipo</label>
                 <input type="text" required value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Ej. Cadete A" />
               </div>
+              {(() => {
+                const sportsList = Array.from(new Set(
+                  (profile?.activeSports && profile.activeSports.length > 0
+                    ? profile.activeSports
+                    : (profile?.sportType ? [profile.sportType] : ['Fútbol'])
+                  ).map(normalizeSport)
+                ));
+                return (
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">Deporte</label>
+                    <select value={newTeamSport} onChange={(e) => setNewTeamSport(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none transition-all font-medium text-slate-700">
+                      {sportsList.map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                  </div>
+                );
+              })()}
               <div className="pt-4 flex gap-3">
                 <button type="submit" disabled={formLoading} className="w-full py-3 bg-brand-600 text-white rounded-xl font-bold hover:bg-brand-700 transition-colors flex justify-center items-center gap-2 shadow-lg shadow-brand-500/30 disabled:opacity-50">
                   {formLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Save className="w-4 h-4"/> Guardar Equipo</>}

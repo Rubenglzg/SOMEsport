@@ -14,6 +14,8 @@ export interface ClubEvent {
   time: string;       // HH:MM
   location: string;
   createdAt: string;
+  squadIds?: string[];
+  result?: string;
 }
 
 export const createEvent = async (data: Omit<ClubEvent, 'id'>): Promise<ClubEvent> => {
@@ -22,9 +24,10 @@ export const createEvent = async (data: Omit<ClubEvent, 'id'>): Promise<ClubEven
 };
 
 export const getClubEvents = async (clubId: string): Promise<ClubEvent[]> => {
-  const q = query(collection(db, 'events'), where('clubId', '==', clubId), orderBy('date', 'asc'));
+  const q = query(collection(db, 'events'), where('clubId', '==', clubId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClubEvent));
+  const events = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as ClubEvent));
+  return events.sort((a, b) => a.date.localeCompare(b.date));
 };
 
 export const getPlayerEvents = async (clubId: string, teamId?: string): Promise<ClubEvent[]> => {

@@ -12,16 +12,17 @@ export function PlayerDocumentsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const targetUid = profile?.accountType === 'tutor' ? profile.fichaId : profile?.uid;
+    if (!targetUid) return;
     try {
-      const docs = await getPlayerDocuments(profile.uid);
+      const docs = await getPlayerDocuments(targetUid);
       setDocuments(docs);
     } catch (error) {
       console.error("Error fetching documents:", error);
     }
   };
 
-  useEffect(() => { loadData(); }, [profile?.uid]);
+  useEffect(() => { loadData(); }, [profile?.uid, profile?.fichaId]);
 
   const handleFileClick = (type: DocumentType) => {
     setSelectedDocType(type);
@@ -30,11 +31,12 @@ export function PlayerDocumentsPage() {
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !profile?.uid || !profile?.clubId) return;
+    const targetUid = profile?.accountType === 'tutor' ? profile.fichaId : profile?.uid;
+    if (!file || !targetUid || !profile?.clubId) return;
     setUploadingDoc(selectedDocType);
     setUploadProgress(0);
     try {
-      await uploadPlayerDocument(profile.uid, profile.clubId, file, selectedDocType, (progress) => setUploadProgress(progress));
+      await uploadPlayerDocument(targetUid, profile.clubId, file, selectedDocType, (progress) => setUploadProgress(progress));
       await loadData();
     } catch (error) {
       console.error("Error uploading file:", error);
@@ -117,6 +119,8 @@ export function PlayerDocumentsPage() {
 
   if (!profile) return null;
 
+  const isAdultPlayer = profile.accountType === 'tutor' ? false : profile.isAdult;
+
   return (
     <div className="space-y-8 max-w-4xl mx-auto pb-12">
       <input type="file" ref={fileInputRef} className="hidden" accept=".pdf,image/*" onChange={handleFileChange} />
@@ -137,14 +141,14 @@ export function PlayerDocumentsPage() {
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-slate-900">Centro de Documentación</h2>
           <div className="text-xs font-semibold bg-slate-100 text-slate-600 px-3 py-1.5 rounded-lg border border-slate-200 inline-flex items-center gap-1.5">
-            {documents.filter(d => d.status === 'approved').length} de {profile.isAdult ? 2 : 3} aprobados
+            {documents.filter(d => d.status === 'approved').length} de {isAdultPlayer ? 2 : 3} aprobados
           </div>
         </div>
 
         <div className="space-y-4">
           {getDocStatusUI('dni', 'DNI o Pasaporte (Anverso y Reverso)')}
           {getDocStatusUI('medical', 'Certificado / Reconocimiento Médico')}
-          {!profile.isAdult && getDocStatusUI('parental', 'Autorización Paterna / Tutor Legal')}
+          {!isAdultPlayer && getDocStatusUI('parental', 'Autorización Paterna / Tutor Legal')}
         </div>
       </div>
     </div>

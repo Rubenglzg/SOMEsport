@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User } from 'firebase/auth';
 
-export type UserRole = 'admin' | 'club' | 'player';
+export type UserRole = 'admin' | 'club' | 'player' | 'staff';
 
 export interface UserProfile {
   uid?: string;
@@ -12,9 +12,18 @@ export interface UserProfile {
   email?: string;
   category?: string;
   teamId?: string;
-  sportType?: 'soccer' | 'basketball' | 'futsal';
-  accountType?: 'jugador' | 'tutor';
+  sportType?: string; // Ej: 'Fútbol', 'Baloncesto', 'eSports'
+  accountType?: 'jugador' | 'tutor' | 'entrenador' | 'directivo';
+  fichaId?: string; // ID de la ficha central (para agrupar 1 jugador y 2 tutores)
+  activeSports?: string[]; // Array de deportes habilitados por el club
   isAdult?: boolean;
+  dni?: string;
+  birthDate?: string;
+  phone?: string;
+  tutorName?: string;
+  tutorPhone?: string;
+  tutorEmail?: string;
+  notes?: string;
   status?: string;
   createdAt?: string;
 }

@@ -21,12 +21,14 @@ import { AdminSeasonsPage } from './pages/admin/AdminSeasonsPage';
 // Club Pages
 import { ClubSettingsPage } from './pages/club/ClubSettingsPage';
 import { ClubDirectoryPage } from './pages/club/ClubDirectoryPage';
+import { ClubStaffPage } from './pages/club/ClubStaffPage';
 import { ClubDocumentsPage } from './pages/club/ClubDocumentsPage';
 import { ClubTeamsPage } from './pages/club/ClubTeamsPage';
 import { ClubTreasuryPage } from './pages/club/ClubTreasuryPage';
 import { ClubCalendarPage } from './pages/club/ClubCalendarPage';
 import { ClubAnnouncementsPage } from './pages/club/ClubAnnouncementsPage';
 import { ClubAttendancePage } from './pages/club/ClubAttendancePage';
+import { ClubFacilitiesPage } from './pages/club/ClubFacilitiesPage';
 
 // Player Pages
 import { PlayerDocumentsPage } from './pages/player/PlayerDocumentsPage';
@@ -37,6 +39,7 @@ import { PlayerCalendarPage } from './pages/player/PlayerCalendarPage';
 import { PlayerMessagesPage } from './pages/player/PlayerMessagesPage';
 import { PlayerHistoryPage } from './pages/player/PlayerHistoryPage';
 import { VersionGuard } from './components/VersionGuard';
+import { PublicRegistrationPage } from './pages/public/PublicRegistrationPage';
 
 function App() {
   return (
@@ -49,6 +52,7 @@ function App() {
           <Route path="/privacidad" element={<PrivacyPolicy />} />
           <Route path="/terminos" element={<Terms />} />
           <Route path="/cookies" element={<Cookies />} />
+          <Route path="/inscribirse/:clubId" element={<PublicRegistrationPage />} />
           
           {/* Login */}
           <Route path="/login" element={<Login />} />
@@ -70,12 +74,14 @@ function App() {
               {/* Club Routes */}
               <Route path="my-club" element={<ClubSettingsPage />} />
               <Route path="directory" element={<ClubDirectoryPage />} />
+              <Route path="staff" element={<ClubStaffPage />} />
               <Route path="documents" element={<ClubDocumentsPage />} />
               <Route path="teams" element={<ClubTeamsPage />} />
               <Route path="treasury" element={<ClubTreasuryPage />} />
               <Route path="calendar" element={<ClubCalendarPage />} />
               <Route path="club-announcements" element={<ClubAnnouncementsPage />} />
               <Route path="attendance" element={<ClubAttendancePage />} />
+              <Route path="facilities" element={<ClubFacilitiesPage />} />
 
               {/* Player Routes */}
               <Route path="my-documents" element={<PlayerDocumentsPage />} />

@@ -1,0 +1,17 @@
+{
+  "manifest_version": 3,
+  "name": "AvantiaEsport Copilot - FFCV",
+  "version": "1.0",
+  "description": "Automatiza el registro de jugadores en el portal de la FFCV (Novanet) desde tu base de datos de Avantia.",
+  "permissions": ["activeTab", "clipboardWrite", "clipboardRead", "storage"],
+  "content_scripts": [
+    {
+      "matches": ["*://*.ffcv.es/*", "*://*.novanet.es/*", "*://*.rfef.es/*", "*://localhost/*"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

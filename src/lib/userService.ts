@@ -80,7 +80,15 @@ export const createPlayerUser = async (data: {
   clubId: string, 
   teamId?: string, 
   accountType: 'jugador' | 'tutor', 
-  isAdult: boolean 
+  isAdult: boolean,
+  fichaId?: string,
+  phone?: string,
+  tutorName?: string,
+  tutorPhone?: string,
+  tutorEmail?: string,
+  notes?: string,
+  dni?: string,
+  birthDate?: string
 }) => {
   const isTaken = await checkUsernameExists(data.username);
   if (isTaken) {
@@ -105,6 +113,14 @@ export const createPlayerUser = async (data: {
       teamId: data.teamId,
       accountType: data.accountType,
       isAdult: data.isAdult,
+      fichaId: data.fichaId,
+      phone: data.phone || '',
+      tutorName: data.tutorName || '',
+      tutorPhone: data.tutorPhone || '',
+      tutorEmail: data.tutorEmail || '',
+      notes: data.notes || '',
+      dni: data.dni || '',
+      birthDate: data.birthDate || '',
       status: 'Pendiente',
       createdAt: new Date().toISOString()
     };
@@ -124,8 +140,60 @@ export const getClubs = async (): Promise<UserProfile[]> => {
   return snapshot.docs.map(doc => doc.data() as UserProfile);
 };
 
+export const createStaffUser = async (data: { 
+  email: string, 
+  password: string, 
+  name: string, 
+  username: string,
+  clubId: string, 
+  accountType: 'entrenador' | 'directivo',
+  sportType?: string,
+  teamId?: string
+}) => {
+  const isTaken = await checkUsernameExists(data.username);
+  if (isTaken) {
+    throw new Error('El nombre de usuario ya está en uso.');
+  }
+
+  const secondaryAppName = `SecondaryApp_Staff_${Date.now()}`;
+  const secondaryApp = initializeApp(firebaseConfig, secondaryAppName);
+  const secondaryAuth = getAuth(secondaryApp);
+  
+  try {
+    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
+    const uid = userCredential.user.uid;
+    
+    const staffData: UserProfile = {
+      uid,
+      email: data.email,
+      name: data.name,
+      username: data.username.toLowerCase().trim(),
+      role: 'staff',
+      clubId: data.clubId,
+      accountType: data.accountType,
+      sportType: data.sportType,
+      teamId: data.teamId,
+      status: 'Activo',
+      createdAt: new Date().toISOString()
+    };
+    
+    await setDoc(doc(db, 'users', uid), staffData);
+    
+    await secondaryAuth.signOut();
+    return staffData;
+  } finally {
+    await deleteApp(secondaryApp);
+  }
+};
+
 export const getPlayersByClub = async (clubId: string): Promise<UserProfile[]> => {
   const q = query(collection(db, 'users'), where('role', '==', 'player'), where('clubId', '==', clubId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => doc.data() as UserProfile);
+};
+
+export const getStaffByClub = async (clubId: string): Promise<UserProfile[]> => {
+  const q = query(collection(db, 'users'), where('role', '==', 'staff'), where('clubId', '==', clubId));
   const snapshot = await getDocs(q);
   return snapshot.docs.map(doc => doc.data() as UserProfile);
 };

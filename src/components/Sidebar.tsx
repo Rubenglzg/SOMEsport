@@ -45,9 +45,11 @@ const navItems: NavItem[] = [
   { icon: LayoutDashboard, label: 'Panel General', path: '/dashboard', roles: ['club'], section: 'General' },
   { icon: Building2, label: 'Mi Club', path: '/dashboard/my-club', roles: ['club'], section: 'Gestión' },
   { icon: Users, label: 'Directorio', path: '/dashboard/directory', roles: ['club'] },
+  { icon: Users, label: 'Cuerpo Técnico', path: '/dashboard/staff', roles: ['club'] },
   { icon: FileCheck, label: 'Documentos', path: '/dashboard/documents', roles: ['club'] },
   { icon: Shield, label: 'Equipos', path: '/dashboard/teams', roles: ['club'] },
   { icon: CreditCard, label: 'Tesorería', path: '/dashboard/treasury', roles: ['club'] },
+  { icon: CalendarDays, label: 'Instalaciones', path: '/dashboard/facilities', roles: ['club'] },
   { icon: CalendarDays, label: 'Calendario', path: '/dashboard/calendar', roles: ['club'], section: 'Comunicación' },
   { icon: Megaphone, label: 'Comunicados', path: '/dashboard/club-announcements', roles: ['club'] },
   { icon: ClipboardCheck, label: 'Asistencia', path: '/dashboard/attendance', roles: ['club'] },
@@ -63,6 +65,14 @@ const navItems: NavItem[] = [
   { icon: Mail, label: 'Buzón', path: '/dashboard/my-messages', roles: ['player'] },
   { icon: History, label: 'Historial', path: '/dashboard/my-history', roles: ['player'] },
   { icon: Settings, label: 'Ajustes', path: '/dashboard/settings', roles: ['player'], section: 'Sistema' },
+
+  // --- Staff (Coaches / Directors) ---
+  { icon: LayoutDashboard, label: 'Panel Técnico', path: '/dashboard', roles: ['staff'], section: 'General' },
+  { icon: Shield, label: 'Mis Equipos', path: '/dashboard/teams', roles: ['staff'], section: 'Gestión' },
+  { icon: CalendarDays, label: 'Instalaciones', path: '/dashboard/facilities', roles: ['staff'] },
+  { icon: CalendarDays, label: 'Calendario', path: '/dashboard/calendar', roles: ['staff'], section: 'Calendario y Convocatorias' },
+  { icon: ClipboardCheck, label: 'Asistencia', path: '/dashboard/attendance', roles: ['staff'] },
+  { icon: Settings, label: 'Ajustes', path: '/dashboard/settings', roles: ['staff'], section: 'Sistema' },
 ];
 
 export function Sidebar() {
@@ -103,7 +113,7 @@ export function Sidebar() {
           <div>
             <span className="text-xl font-black tracking-tight block leading-none">Sooner</span>
             <span className="text-xs text-brand-400 font-bold uppercase tracking-widest mt-1 block">
-              {userRole === 'admin' ? 'Administrador' : userRole === 'club' ? 'Panel de Club' : 'Portal Jugador'}
+              {userRole === 'admin' ? 'Administrador' : userRole === 'club' ? 'Panel de Club' : userRole === 'staff' ? 'Cuerpo Técnico' : 'Portal Jugador'}
             </span>
           </div>
         </div>

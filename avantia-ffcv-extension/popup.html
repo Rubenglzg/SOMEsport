@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>AvantiaEsport Copilot</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <!-- Container principal -->
+  <div id="app" class="app-container">
+    
+    <!-- PANTALLA 1: LOGIN -->
+    <div id="login-view" class="view">
+      <div class="header">
+        <div class="logo">A</div>
+        <div>
+          <div class="title">AvantiaEsport</div>
+          <div class="subtitle">Copiloto FFCV</div>
+        </div>
+      </div>
+
+      <div class="form-container">
+        <h3>Iniciar Sesión</h3>
+        <p class="form-desc">Ingresa las credenciales de tu club para acceder a los jugadores pendientes.</p>
+        
+        <div id="login-error" class="error-box hidden"></div>
+
+        <form id="login-form">
+          <div class="input-group">
+            <label for="email">Correo electrónico</label>
+            <input type="email" id="email" required placeholder="club@ejemplo.com">
+          </div>
+          
+          <div class="input-group">
+            <label for="password">Contraseña</label>
+            <input type="password" id="password" required placeholder="••••••••">
+          </div>
+
+          <button type="submit" id="btn-login" class="btn-primary">
+            <span>Iniciar Sesión</span>
+            <span class="spinner hidden" id="login-spinner"></span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- PANTALLA 2: DASHBOARD / BUSCADOR -->
+    <div id="dashboard-view" class="view hidden">
+      <div class="header-dashboard">
+        <div class="club-info">
+          <div class="logo-small">A</div>
+          <div>
+            <div id="club-name" class="club-name">Cargando Club...</div>
+            <div class="club-status">⚡ Copiloto Conectado</div>
+          </div>
+        </div>
+        <button id="btn-logout" class="btn-logout" title="Cerrar Sesión">✕</button>
+      </div>
+
+      <!-- Barra de Buscador y Filtros -->
+      <div class="toolbar">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="🔍 Buscar por nombre...">
+        </div>
+        <div class="select-box">
+          <select id="team-filter">
+            <option value="">Todos los equipos</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Indicador de jugador seleccionado activo -->
+      <div id="active-player-banner" class="active-banner hidden">
+        <div class="banner-content">
+          <span class="zap-icon">⚡</span>
+          <div>
+            <div class="banner-title">Listo para Autocompletar:</div>
+            <div id="active-player-name" class="banner-name">Ninguno seleccionado</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Jugadores Pendientes -->
+      <div class="list-section">
+        <div class="section-title">
+          <span>Fichas Pendientes de FFCV</span>
+          <span id="player-count" class="badge">0</span>
+        </div>
+        
+        <div id="players-list" class="players-list">
+          <!-- Cargando -->
+          <div id="list-loader" class="loader-box">
+            <div class="spinner"></div>
+            <p>Cargando plantilla...</p>
+          </div>
+          <!-- Lista vacía -->
+          <div id="list-empty" class="empty-box hidden">
+            <div class="check-icon">✓</div>
+            <p class="empty-title">¡Todo al día!</p>
+            <p class="empty-desc">No hay jugadores con ficha en estado "Pendiente".</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

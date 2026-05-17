@@ -8,6 +8,8 @@ import { getPlayerPayments } from '../../lib/paymentService';
 import { getPlayerTeam, type Team } from '../../lib/teamsService';
 import { Link } from 'react-router-dom';
 
+import { getSeasons } from '../../lib/seasonsService';
+
 export function PlayerDashboard() {
   const profile = useAuthStore((state) => state.profile);
   const [clubName, setClubName] = useState<string>('Cargando...');
@@ -15,6 +17,8 @@ export function PlayerDashboard() {
   const [documents, setDocuments] = useState<PlayerDocument[]>([]);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [team, setTeam] = useState<Team | null>(null);
+  const [childName, setChildName] = useState('');
+  const [childStatus, setChildStatus] = useState('Pendiente');
 
   useEffect(() => {
     const loadData = async () => {
@@ -34,15 +38,32 @@ export function PlayerDashboard() {
         setClubName('Sin club asignado');
       }
 
-      if (profile.uid) {
+      const targetPlayerUid = profile.accountType === 'tutor' ? profile.fichaId : profile.uid;
+
+      if (profile.accountType === 'tutor' && profile.fichaId) {
         try {
-          const [docs, pmtRecs, teamData] = await Promise.all([
-            getPlayerDocuments(profile.uid),
-            getPlayerPayments(profile.uid),
-            getPlayerTeam(profile.uid)
+          const childDoc = await getDoc(doc(db, 'users', profile.fichaId));
+          if (childDoc.exists()) {
+            setChildName(childDoc.data().name || '');
+            setChildStatus(childDoc.data().status || 'Pendiente');
+          }
+        } catch (e) {
+          console.error("Error loading child profile:", e);
+        }
+      }
+
+      if (targetPlayerUid) {
+        try {
+          const [docs, pmtRecs, teamData, seasonsData] = await Promise.all([
+            getPlayerDocuments(targetPlayerUid),
+            getPlayerPayments(targetPlayerUid),
+            getPlayerTeam(targetPlayerUid),
+            getSeasons()
           ]);
           setDocuments(docs);
-          setPaymentSuccess(pmtRecs.some(p => p.season === '2023-2024'));
+          const active = seasonsData.find(s => s.isActive) || seasonsData[0] || null;
+          const seasonName = active?.name || '2023-2024';
+          setPaymentSuccess(pmtRecs.some(p => p.season === seasonName));
           if (teamData) setTeam(teamData);
         } catch (error) {
           console.error("Error fetching player data:", error);
@@ -50,7 +71,7 @@ export function PlayerDashboard() {
       }
     };
     loadData();
-  }, [profile?.uid, profile?.clubId]);
+  }, [profile?.uid, profile?.clubId, profile?.fichaId]);
 
   if (!profile) {
     return (
@@ -69,7 +90,11 @@ export function PlayerDashboard() {
   };
 
   const approvedDocs = documents.filter(d => d.status === 'approved').length;
-  const totalDocs = profile.isAdult ? 2 : 3;
+  const isAdultPlayer = profile.accountType === 'tutor' ? false : profile.isAdult;
+  const totalDocs = isAdultPlayer ? 2 : 3;
+
+  const displayName = profile.accountType === 'tutor' ? `${profile.name} 👥` : profile.name;
+  const displayStatus = profile.accountType === 'tutor' ? childStatus : profile.status;
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12">
@@ -88,13 +113,13 @@ export function PlayerDashboard() {
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/10 backdrop-blur-md rounded-full text-sm font-semibold mb-6 border border-white/10">
             <span className={`w-2 h-2 rounded-full shadow-[0_0_8px_rgba(255,255,255,0.5)] ${
-              profile.status === 'Aprobada' || profile.status === 'Activo' ? 'bg-emerald-400' :
-              profile.status === 'Pendiente' ? 'bg-amber-400' : 'bg-blue-400'
+              displayStatus === 'Aprobada' || displayStatus === 'Activo' ? 'bg-emerald-400' :
+              displayStatus === 'Pendiente' ? 'bg-amber-400' : 'bg-blue-400'
             }`}></span>
-            Estado: {profile.status || 'Pendiente'}
+            Estado de Ficha: {displayStatus || 'Pendiente'}
           </div>
 
-          <h2 className="text-4xl sm:text-5xl font-extrabold mb-2 tracking-tight">{profile.name}</h2>
+          <h2 className="text-4xl sm:text-5xl font-extrabold mb-2 tracking-tight">{displayName}</h2>
           <p className="text-brand-200 font-medium text-lg sm:text-xl flex items-center gap-2">
             {team ? team.category : profile.category || 'Sin categoría asignada'}
             <span className="w-1.5 h-1.5 bg-brand-400 rounded-full"></span>
@@ -108,7 +133,7 @@ export function PlayerDashboard() {
             </div>
             <div className="bg-white/5 rounded-2xl p-4 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-colors">
               <p className="text-xs text-brand-200 uppercase tracking-wider font-semibold mb-1">Tipo de Ficha</p>
-              <p className="font-bold text-lg">{profile.isAdult ? 'Mayor de edad' : 'Menor de edad'}</p>
+              <p className="font-bold text-lg">{isAdultPlayer ? 'Mayor de edad' : 'Menor de edad'}</p>
             </div>
             <div className="bg-white/5 rounded-2xl p-4 backdrop-blur-md border border-white/10 hover:bg-white/10 transition-colors sm:col-span-2">
               <p className="text-xs text-brand-200 uppercase tracking-wider font-semibold mb-1">Email Registrado</p>
@@ -120,7 +145,7 @@ export function PlayerDashboard() {
 
       {/* Quick Status & Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link to="/my-documents" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
+        <Link to="/dashboard/my-documents" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
           <div className={`p-3 rounded-xl ${approvedDocs === totalDocs ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
             <FileText className="w-6 h-6" />
           </div>
@@ -131,7 +156,7 @@ export function PlayerDashboard() {
           <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
         </Link>
 
-        <Link to="/my-payments" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
+        <Link to="/dashboard/my-payments" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
           <div className={`p-3 rounded-xl ${paymentSuccess ? 'bg-emerald-100 text-emerald-600' : 'bg-amber-100 text-amber-600'}`}>
             <CreditCard className="w-6 h-6" />
           </div>
@@ -142,7 +167,7 @@ export function PlayerDashboard() {
           <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
         </Link>
 
-        <Link to="/my-team" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
+        <Link to="/dashboard/my-team" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
           <div className={`p-3 rounded-xl ${team ? 'bg-brand-100 text-brand-600' : 'bg-slate-100 text-slate-400'}`}>
             <Users className="w-6 h-6" />
           </div>
@@ -156,17 +181,17 @@ export function PlayerDashboard() {
 
       {/* Secondary Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link to="/my-calendar" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
+        <Link to="/dashboard/my-calendar" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
           <div className="p-3 rounded-xl bg-blue-100 text-blue-600"><CalendarDays className="w-6 h-6" /></div>
           <div className="flex-1"><p className="font-bold text-slate-900">Calendario</p><p className="text-xs text-slate-500">Próximos eventos</p></div>
           <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
         </Link>
-        <Link to="/my-messages" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
+        <Link to="/dashboard/my-messages" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
           <div className="p-3 rounded-xl bg-amber-100 text-amber-600"><Mail className="w-6 h-6" /></div>
           <div className="flex-1"><p className="font-bold text-slate-900">Buzón</p><p className="text-xs text-slate-500">Comunicados del club</p></div>
           <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />
         </Link>
-        <Link to="/my-history" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
+        <Link to="/dashboard/my-history" className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm hover:shadow-md transition-all hover:-translate-y-0.5 flex items-center gap-4 group">
           <div className="p-3 rounded-xl bg-slate-100 text-slate-600"><History className="w-6 h-6" /></div>
           <div className="flex-1"><p className="font-bold text-slate-900">Historial</p><p className="text-xs text-slate-500">Asistencia, pagos y docs</p></div>
           <ArrowRight className="w-5 h-5 text-slate-300 group-hover:text-slate-500 transition-colors" />

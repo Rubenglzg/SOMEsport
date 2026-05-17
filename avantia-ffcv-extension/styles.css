@@ -1,0 +1,15 @@
+/* Estilos extra para el botón flotante e inyecciones de Avantia */
+#avantia-copilot-btn {
+  animation: avantiaBounce 1.5s infinite alternate;
+}
+
+@keyframes avantiaBounce {
+  0% {
+    transform: translateY(0);
+    box-shadow: 0 10px 25px rgba(79,70,229,0.4);
+  }
+  100% {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 30px rgba(79,70,229,0.55);
+  }
+}

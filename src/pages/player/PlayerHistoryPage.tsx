@@ -14,13 +14,14 @@ export function PlayerHistoryPage() {
 
   useEffect(() => {
     const load = async () => {
-      if (!profile?.uid || !profile?.clubId) return;
+      const targetPlayerUid = profile?.accountType === 'tutor' ? profile.fichaId : profile?.uid;
+      if (!targetPlayerUid || !profile?.clubId) return;
       setLoading(true);
       try {
         const [att, pmt, docs] = await Promise.all([
-          getPlayerAttendanceHistory(profile.clubId, profile.uid),
-          getPlayerPayments(profile.uid),
-          getPlayerDocuments(profile.uid)
+          getPlayerAttendanceHistory(profile.clubId, targetPlayerUid),
+          getPlayerPayments(targetPlayerUid),
+          getPlayerDocuments(targetPlayerUid)
         ]);
         setAttendance(att);
         setPayments(pmt.map(p => ({ date: p.paidAt, amount: p.amount, season: p.season })));
@@ -29,7 +30,7 @@ export function PlayerHistoryPage() {
       finally { setLoading(false); }
     };
     load();
-  }, [profile?.uid, profile?.clubId]);
+  }, [profile?.uid, profile?.clubId, profile?.fichaId]);
 
   const statusIcon = (s: string) => {
     if (s === 'present') return <CheckCircle className="w-4 h-4 text-emerald-600" />;

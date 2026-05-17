@@ -2,6 +2,7 @@ import { useAuthStore } from '../store/authStore';
 import { AdminDashboard } from '../components/dashboards/AdminDashboard';
 import { ClubDashboard } from '../components/dashboards/ClubDashboard';
 import { PlayerDashboard } from '../components/dashboards/PlayerDashboard';
+import { StaffDashboard } from '../components/dashboards/StaffDashboard';
 import { Loader2 } from 'lucide-react';
 
 export function Dashboard() {
@@ -23,6 +24,8 @@ export function Dashboard() {
       return <AdminDashboard />;
     case 'club':
       return <ClubDashboard />;
+    case 'staff':
+      return <StaffDashboard />;
     case 'player':
     default:
       return <PlayerDashboard />;

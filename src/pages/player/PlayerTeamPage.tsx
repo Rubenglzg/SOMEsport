@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Users, Shield, Loader2 } from 'lucide-react';
+import { Users, Shield, Loader2, Calendar, Activity, Trophy } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { getPlayerTeam, type Team } from '../../lib/teamsService';
 import { getPlayersByClub } from '../../lib/userService';
@@ -13,15 +13,16 @@ export function PlayerTeamPage() {
 
   useEffect(() => {
     const load = async () => {
-      if (!profile?.uid) return;
+      const targetPlayerUid = profile?.accountType === 'tutor' ? profile.fichaId : profile?.uid;
+      if (!targetPlayerUid) return;
       setLoading(true);
       try {
-        const teamData = await getPlayerTeam(profile.uid);
+        const teamData = await getPlayerTeam(targetPlayerUid);
         if (teamData) {
           setTeam(teamData);
           if (profile.clubId) {
             const allClubPlayers = await getPlayersByClub(profile.clubId);
-            const myTeammates = allClubPlayers.filter(p => teamData.playerIds.includes(p.uid!) && p.uid !== profile.uid);
+            const myTeammates = allClubPlayers.filter(p => teamData.playerIds.includes(p.uid!) && p.uid !== targetPlayerUid);
             setTeammates(myTeammates);
           }
         }
@@ -32,7 +33,7 @@ export function PlayerTeamPage() {
       }
     };
     load();
-  }, [profile?.uid, profile?.clubId]);
+  }, [profile?.uid, profile?.clubId, profile?.fichaId]);
 
   if (!profile) return null;
 
@@ -60,25 +61,68 @@ export function PlayerTeamPage() {
       {/* Team Card */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
         {team ? (
-          <div className="space-y-6">
-            {/* Team Info */}
-            <div className="bg-gradient-to-br from-brand-50 to-brand-100/50 rounded-2xl p-6 border border-brand-200">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="p-3 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/30">
-                  <Shield className="w-8 h-8" />
+          <div className="space-y-8">
+            {/* Top Grid: Info & Next Match */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Team Info */}
+              <div className="bg-gradient-to-br from-brand-50 to-brand-100/50 rounded-2xl p-6 border border-brand-200 flex flex-col justify-center">
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="p-3 bg-brand-600 text-white rounded-xl shadow-lg shadow-brand-500/30">
+                    <Shield className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-brand-600 font-bold uppercase tracking-wider">Nombre del Equipo</p>
+                    <p className="text-2xl font-black text-brand-900">{team.name}</p>
+                  </div>
+                </div>
+                {team.category && (
+                  <div className="mt-2">
+                    <span className="text-sm font-semibold text-brand-700 bg-white/80 px-3 py-1 rounded-lg border border-brand-200">
+                      Categoría: {team.category}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Next Match (Simulated) */}
+              <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 text-slate-800">
+                    <Calendar className="w-5 h-5 text-indigo-500" />
+                    <span className="font-bold text-sm">Próximo Partido</span>
+                  </div>
+                  <span className="text-xs font-semibold px-2 py-1 bg-indigo-50 text-indigo-700 rounded uppercase tracking-wider">Liga Regular</span>
                 </div>
                 <div>
-                  <p className="text-xs text-brand-600 font-bold uppercase tracking-wider">Nombre del Equipo</p>
-                  <p className="text-2xl font-black text-brand-900">{team.name}</p>
+                  <div className="flex items-center justify-between font-black text-lg text-slate-900 mb-2">
+                    <span className="truncate max-w-[40%]">{team.name}</span>
+                    <span className="text-slate-400 text-sm">VS</span>
+                    <span className="truncate max-w-[40%] text-right">Rival FC</span>
+                  </div>
+                  <p className="text-sm text-slate-500 font-medium flex items-center gap-2 mt-4">
+                    Sábado, 10:00 AM • Pabellón Principal
+                  </p>
                 </div>
               </div>
-              {team.category && (
-                <div className="mt-2">
-                  <span className="text-sm font-semibold text-brand-700 bg-white/80 px-3 py-1 rounded-lg border border-brand-200">
-                    Categoría: {team.category}
-                  </span>
-                </div>
-              )}
+            </div>
+
+            {/* Simulated Stats */}
+            <div className="grid grid-cols-3 gap-4">
+               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
+                 <Trophy className="w-6 h-6 text-amber-500 mx-auto mb-2" />
+                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Posición Liga</p>
+                 <p className="text-xl font-black text-slate-900">3º</p>
+               </div>
+               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
+                 <Activity className="w-6 h-6 text-emerald-500 mx-auto mb-2" />
+                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Racha</p>
+                 <p className="text-xl font-black text-emerald-600 tracking-widest">V V D V</p>
+               </div>
+               <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 text-center">
+                 <Users className="w-6 h-6 text-blue-500 mx-auto mb-2" />
+                 <p className="text-xs text-slate-500 font-bold uppercase mb-1">Plantilla</p>
+                 <p className="text-xl font-black text-slate-900">{teammates.length + 1}</p>
+               </div>
             </div>
 
             {/* Teammates */}

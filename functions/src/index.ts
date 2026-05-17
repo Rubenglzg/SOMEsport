@@ -46,7 +46,14 @@ export const deleteUserAccountV2 = onCall(async (request) => {
     }
 
     // Proceder al borrado
-    await admin.auth().deleteUser(uid);
+    try {
+      await admin.auth().deleteUser(uid);
+    } catch (authError: any) {
+      // Ignorar si el usuario no existe en Auth (ej: pre-registros sin credenciales)
+      if (authError.code !== 'auth/user-not-found' && authError.message !== 'Requested entity was not found.' && !authError.message?.includes('user-not-found')) {
+        throw authError;
+      }
+    }
     await db.collection('users').doc(uid).delete();
 
     return { success: true, message: 'Usuario eliminado correctamente.' };

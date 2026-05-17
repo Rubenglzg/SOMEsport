@@ -19,15 +19,17 @@ export const createAnnouncement = async (data: Omit<Announcement, 'id'>): Promis
 };
 
 export const getGlobalAnnouncements = async (): Promise<Announcement[]> => {
-  const q = query(collection(db, 'announcements'), where('scope', '==', 'global'), orderBy('createdAt', 'desc'));
+  const q = query(collection(db, 'announcements'), where('scope', '==', 'global'));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+  const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+  return announcements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
 export const getClubAnnouncements = async (clubId: string): Promise<Announcement[]> => {
-  const q = query(collection(db, 'announcements'), where('scope', '==', 'club'), where('clubId', '==', clubId), orderBy('createdAt', 'desc'));
+  const q = query(collection(db, 'announcements'), where('scope', '==', 'club'), where('clubId', '==', clubId));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+  const announcements = snapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+  return announcements.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 };
 
 export const getPlayerAnnouncements = async (clubId: string): Promise<Announcement[]> => {
