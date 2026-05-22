@@ -77,9 +77,43 @@ export const getClubPendingDocuments = async (clubId: string): Promise<PlayerDoc
   return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlayerDocument));
 };
 
+export const getClubDocuments = async (clubId: string): Promise<PlayerDocument[]> => {
+  const q = query(collection(db, 'documents'), where("clubId", "==", clubId));
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlayerDocument));
+};
+
 export const updateDocumentStatus = async (documentId: string, status: DocumentStatus, notes?: string): Promise<void> => {
   const docRef = doc(db, 'documents', documentId);
   const updateData: any = { status };
-  if (notes) updateData.notes = notes;
+  if (notes !== undefined) updateData.notes = notes;
   await updateDoc(docRef, updateData);
 };
+
+export const uploadUserProfilePhoto = async (
+  userId: string,
+  file: File
+): Promise<string> => {
+  const storageRef = ref(storage, `profiles/${userId}/photo_${Date.now()}_${file.name}`);
+  const uploadTask = uploadBytesResumable(storageRef, file);
+
+  return new Promise((resolve, reject) => {
+    uploadTask.on(
+      'state_changed',
+      null,
+      (error) => {
+        console.error("Profile photo upload failed", error);
+        reject(error);
+      },
+      async () => {
+        try {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        } catch (error) {
+          reject(error);
+        }
+      }
+    );
+  });
+};
+

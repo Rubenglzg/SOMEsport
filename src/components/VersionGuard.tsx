@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AlertTriangle, Download, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Download, RefreshCw, ShieldAlert } from 'lucide-react';
 import { getAppConfig, isVersionOlder, APP_VERSION } from '../lib/versionService';
 import type { AppConfig } from '../lib/versionService';
 

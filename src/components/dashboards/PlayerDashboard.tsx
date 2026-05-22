@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { FileText, Bell, Loader2, CreditCard, Shield, Users, ArrowRight, CalendarDays, Mail, History } from 'lucide-react';
+import { FileText, Bell, Loader2, CreditCard, Shield, Users, ArrowRight, CalendarDays, Mail, History, Trophy, Award, Zap, Clock, Star, Sparkles, Activity } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
@@ -7,7 +7,7 @@ import { getPlayerDocuments, type PlayerDocument } from '../../lib/storageServic
 import { getPlayerPayments } from '../../lib/paymentService';
 import { getPlayerTeam, type Team } from '../../lib/teamsService';
 import { Link } from 'react-router-dom';
-
+import { getClubEvents } from '../../lib/eventsService';
 import { getSeasons } from '../../lib/seasonsService';
 
 export function PlayerDashboard() {
@@ -19,6 +19,17 @@ export function PlayerDashboard() {
   const [team, setTeam] = useState<Team | null>(null);
   const [childName, setChildName] = useState('');
   const [childStatus, setChildStatus] = useState('Pendiente');
+
+  // season statistics state
+  const [stats, setStats] = useState({
+    matchesPlayed: 0,
+    goals: 0,
+    assists: 0,
+    yellowCards: 0,
+    redCards: 0,
+    minutesPlayed: 0,
+    avgRating: 0
+  });
 
   useEffect(() => {
     const loadData = async () => {
@@ -65,6 +76,47 @@ export function PlayerDashboard() {
           const seasonName = active?.name || '2023-2024';
           setPaymentSuccess(pmtRecs.some(p => p.season === seasonName));
           if (teamData) setTeam(teamData);
+
+          // Load matches stats
+          if (profile.clubId) {
+            const allEvs = await getClubEvents(profile.clubId);
+            const matches = allEvs.filter(e => e.type === 'match' && e.playerStats && e.playerStats[targetPlayerUid]);
+            
+            let matchesPlayed = 0;
+            let goals = 0;
+            let assists = 0;
+            let yellowCards = 0;
+            let redCards = 0;
+            let minutesPlayed = 0;
+            let ratingSum = 0;
+            let ratingCount = 0;
+
+            matches.forEach(m => {
+              const ps = m.playerStats![targetPlayerUid];
+              if (ps) {
+                matchesPlayed++;
+                goals += ps.goals || 0;
+                assists += ps.assists || 0;
+                yellowCards += ps.yellowCards || 0;
+                redCards += ps.redCards || 0;
+                minutesPlayed += ps.minutesPlayed || 0;
+                if (ps.rating) {
+                  ratingSum += ps.rating;
+                  ratingCount++;
+                }
+              }
+            });
+
+            setStats({
+              matchesPlayed,
+              goals,
+              assists,
+              yellowCards,
+              redCards,
+              minutesPlayed,
+              avgRating: ratingCount > 0 ? parseFloat((ratingSum / ratingCount).toFixed(1)) : 0
+            });
+          }
         } catch (error) {
           console.error("Error fetching player data:", error);
         }
@@ -93,7 +145,7 @@ export function PlayerDashboard() {
   const isAdultPlayer = profile.accountType === 'tutor' ? false : profile.isAdult;
   const totalDocs = isAdultPlayer ? 2 : 3;
 
-  const displayName = profile.accountType === 'tutor' ? `${profile.name} 👥` : profile.name;
+  const displayName = profile.accountType === 'tutor' ? `${profile.name} (Tutor de ${childName || 'Jugador'}) 👥` : profile.name;
   const displayStatus = profile.accountType === 'tutor' ? childStatus : profile.status;
 
   return (
@@ -198,6 +250,104 @@ export function PlayerDashboard() {
         </Link>
       </div>
 
+      {/* Premium Season Statistics Widget */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-850 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl border border-slate-800 relative overflow-hidden">
+        {/* Background Sparkles Decors */}
+        <div className="absolute top-0 right-0 p-8 opacity-5">
+          <Trophy className="w-64 h-64" />
+        </div>
+
+        <div className="relative z-10 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-black flex items-center gap-2.5">
+              <Trophy className="w-6 h-6 text-amber-400" />
+              Estadísticas Acumuladas de la Temporada
+            </h2>
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-xs font-semibold text-amber-300 border border-white/5">
+              <Sparkles className="w-3.5 h-3.5" /> Ficha Deportiva
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            {/* Matches Played */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Partidos</span>
+                <span className="p-1 bg-blue-500/20 text-blue-300 rounded-md"><Activity className="w-3.5 h-3.5" /></span>
+              </div>
+              <h3 className="text-2xl font-black">{stats.matchesPlayed}</h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">Disputados con ficha</p>
+            </div>
+
+            {/* Goals */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Goles</span>
+                <span className="p-1 bg-emerald-500/20 text-emerald-300 rounded-md"><Trophy className="w-3.5 h-3.5" /></span>
+              </div>
+              <h3 className="text-2xl font-black">{stats.goals}</h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">Anotados esta campaña</p>
+            </div>
+
+            {/* Assists */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Asistencias</span>
+                <span className="p-1 bg-amber-500/20 text-amber-300 rounded-md"><Zap className="w-3.5 h-3.5" /></span>
+              </div>
+              <h3 className="text-2xl font-black">{stats.assists}</h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">Pases de gol clave</p>
+            </div>
+
+            {/* Average Rating */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 hover:bg-white/10 transition-colors">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Calificación</span>
+                <span className="p-1 bg-indigo-500/20 text-indigo-300 rounded-md"><Star className="w-3.5 h-3.5" /></span>
+              </div>
+              <h3 className="text-2xl font-black">{stats.avgRating > 0 ? `${stats.avgRating} / 10` : 'S/C'}</h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">Valoración media staff</p>
+            </div>
+          </div>
+
+          {/* Secondary stats row: minutes and cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors">
+              <div className="flex items-center gap-3">
+                <span className="p-2.5 bg-slate-800 text-slate-300 rounded-xl"><Clock className="w-5 h-5" /></span>
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Minutos Jugados</span>
+                  <span className="text-lg font-extrabold">{stats.minutesPlayed} min</span>
+                </div>
+              </div>
+              <span className="text-[10px] font-bold text-slate-500">{stats.matchesPlayed > 0 ? `${Math.round(stats.minutesPlayed / stats.matchesPlayed)}m / partido` : ''}</span>
+            </div>
+
+            {/* Cards section */}
+            <div className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center gap-3 sm:col-span-2 hover:bg-white/10 transition-colors">
+              <span className="p-2.5 bg-slate-800 text-slate-300 rounded-xl"><Award className="w-5 h-5" /></span>
+              <div className="flex-1 grid grid-cols-2 gap-4">
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Amarillas</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="w-2.5 h-4 bg-amber-400 rounded-sm border border-amber-300 shadow-sm shrink-0" />
+                    <span className="text-base font-extrabold">{stats.yellowCards}</span>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Rojas Directas</span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <div className="w-2.5 h-4 bg-red-500 rounded-sm border border-red-400 shadow-sm shrink-0" />
+                    <span className="text-base font-extrabold">{stats.redCards}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Notices */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
         <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2 mb-6">
@@ -229,3 +379,4 @@ export function PlayerDashboard() {
     </div>
   );
 }
+

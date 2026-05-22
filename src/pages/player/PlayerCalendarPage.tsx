@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CalendarDays, Loader2, MapPin, Clock, Trophy, ClipboardList } from 'lucide-react';
+import { CalendarDays, Loader2, MapPin, Clock, Trophy } from 'lucide-react';
 import { getPlayerEvents, type ClubEvent, type EventType } from '../../lib/eventsService';
 import { useAuthStore } from '../../store/authStore';
 

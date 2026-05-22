@@ -82,7 +82,7 @@ export function ClubDirectoryPage() {
       if (!profile?.activeSports || profile.activeSports.length === 0) return true;
       return team.sportType ? profile.activeSports.includes(team.sportType) : true;
     });
-  }, [teams, profile?.activeSports]);
+  }, [teams, profile]);
 
   const handleOpenCreateModal = () => {
     setEditingPlayer(null);

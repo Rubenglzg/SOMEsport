@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Users, CheckCircle, AlertCircle, CreditCard, Shield, ArrowRight, FileCheck, Building2, CalendarDays, Megaphone, ClipboardCheck } from 'lucide-react';
+import { Users, CheckCircle, AlertCircle, CreditCard, Shield, ArrowRight, FileCheck, Building2, CalendarDays, Megaphone, ClipboardCheck, MapPin, Clock, Pin } from 'lucide-react';
 import { getPlayersByClub } from '../../lib/userService';
 import { getClubPendingDocuments } from '../../lib/storageService';
 import { getTeamsByClub, type Team } from '../../lib/teamsService';
 import { getClubPayments, type PaymentRecord } from '../../lib/paymentService';
+import { getClubEvents, type ClubEvent } from '../../lib/eventsService';
+import { getClubAnnouncements, type Announcement } from '../../lib/announcementsService';
 import { useAuthStore, type UserProfile } from '../../store/authStore';
 import { Link } from 'react-router-dom';
 
@@ -12,6 +14,8 @@ export function ClubDashboard() {
   const [players, setPlayers] = useState<UserProfile[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [payments, setPayments] = useState<PaymentRecord[]>([]);
+  const [upcomingEvents, setUpcomingEvents] = useState<ClubEvent[]>([]);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [pendingDocsCount, setPendingDocsCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -29,16 +33,23 @@ export function ClubDashboard() {
       if (!profile?.uid) return;
       setLoading(true);
       try {
-        const [playersData, docsData, teamsData, paymentsData] = await Promise.all([
+        const [playersData, docsData, teamsData, paymentsData, eventsData, announcementsData] = await Promise.all([
           getPlayersByClub(profile.uid),
           getClubPendingDocuments(profile.uid),
           getTeamsByClub(profile.uid),
-          getClubPayments(profile.uid)
+          getClubPayments(profile.uid),
+          getClubEvents(profile.uid),
+          getClubAnnouncements(profile.uid)
         ]);
         setPlayers(playersData);
         setPendingDocsCount(docsData.length);
         setTeams(teamsData);
         setPayments(paymentsData);
+
+        const today = new Date().toISOString().split('T')[0];
+        const upcoming = eventsData.filter(e => e.date >= today).slice(0, 5);
+        setUpcomingEvents(upcoming);
+        setAnnouncements(announcementsData.slice(0, 3));
       } catch (error) {
         console.error("Error loading data:", error);
       } finally {
@@ -85,31 +96,193 @@ export function ClubDashboard() {
         <QuickLink to="/attendance" icon={<ClipboardCheck className="w-6 h-6" />} title="Asistencia" desc="Pasar lista por evento" badge={null} />
       </div>
 
-      {/* Recent Players */}
-      {!loading && players.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-slate-900">Últimas Fichas</h2>
-            <Link to="/directory" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">Ver todos <ArrowRight className="w-4 h-4" /></Link>
-          </div>
-          <div className="space-y-2">
-            {players.slice(0, 5).map(p => (
-              <div key={p.uid} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">{p.name?.charAt(0).toUpperCase()}</div>
-                  <div>
-                    <p className="font-bold text-slate-900 text-sm">{p.name}</p>
-                    <p className="text-xs text-slate-500 capitalize">{p.accountType || 'Jugador'}</p>
-                  </div>
-                </div>
-                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
-                  p.status === 'Activo' || p.status === 'Aprobada' ? 'text-emerald-700 bg-emerald-100' :
-                  p.status === 'Pendiente' ? 'text-amber-700 bg-amber-100' : 'text-brand-700 bg-brand-100'
-                }`}>
-                  {p.status || 'Pendiente'}
-                </span>
+      {/* Dynamic Dashboard Sections */}
+      {!loading ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column: Recent Players & Announcements */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Recent Players */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Users className="w-5 h-5 text-brand-600" />
+                  Últimas Fichas
+                </h2>
+                <Link to="/directory" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors">
+                  Ver todos <ArrowRight className="w-4 h-4" />
+                </Link>
               </div>
-            ))}
+              {players.length > 0 ? (
+                <div className="space-y-2">
+                  {players.slice(0, 5).map(p => (
+                    <div key={p.uid} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-100">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm">
+                          {p.name?.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="font-bold text-slate-900 text-sm">{p.name}</p>
+                          <p className="text-xs text-slate-500 capitalize">{p.accountType || 'Jugador'}</p>
+                        </div>
+                      </div>
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        p.status === 'Activo' || p.status === 'Aprobada' ? 'text-emerald-700 bg-emerald-100' :
+                        p.status === 'Pendiente' ? 'text-amber-700 bg-amber-100' : 'text-brand-700 bg-brand-100'
+                      }`}>
+                        {p.status || 'Pendiente'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-slate-500 text-sm">
+                  No hay fichas registradas aún.
+                </div>
+              )}
+            </div>
+
+            {/* Recent Announcements */}
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Megaphone className="w-5 h-5 text-brand-600" />
+                  Últimos Comunicados del Club
+                </h2>
+                <Link to="/club-announcements" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors">
+                  Ver todos <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+              {announcements.length > 0 ? (
+                <div className="space-y-4">
+                  {announcements.map(ann => (
+                    <div key={ann.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-slate-100/50 transition-colors relative group">
+                      {ann.pinned && (
+                        <span className="absolute top-4 right-4 text-amber-500 flex items-center gap-1 text-xs font-semibold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
+                          <Pin className="w-3 h-3 fill-current" /> Fijado
+                        </span>
+                      )}
+                      <h3 className="font-bold text-slate-950 pr-16 text-sm group-hover:text-brand-600 transition-colors">{ann.title}</h3>
+                      <p className="text-xs text-slate-650 mt-1 line-clamp-2 leading-relaxed">{ann.body}</p>
+                      <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-200/50 text-[10px] text-slate-400 font-medium">
+                        <span>Por {ann.authorName}</span>
+                        <span>{new Date(ann.createdAt).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <Megaphone className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                  <p className="text-xs text-slate-500">No hay comunicados publicados.</p>
+                  <Link to="/club-announcements" className="text-xs text-brand-600 font-semibold mt-2 inline-block hover:underline">
+                    Publicar primer comunicado
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Right Column: Upcoming Events / Agenda */}
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 h-full flex flex-col">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <CalendarDays className="w-5 h-5 text-brand-600" />
+                  Próximos Eventos
+                </h2>
+                <Link to="/calendar" className="text-sm font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1 transition-colors">
+                  Ver agenda <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+
+              {upcomingEvents.length > 0 ? (
+                <div className="space-y-3 flex-1">
+                  {upcomingEvents.map(evt => {
+                    const eventTeam = teams.find(t => t.id === evt.teamId);
+                    const typeBadgeStyles = evt.type === 'match' 
+                      ? 'bg-rose-100 text-rose-700 border-rose-200' 
+                      : evt.type === 'training' 
+                        ? 'bg-teal-100 text-teal-700 border-teal-200' 
+                        : 'bg-indigo-100 text-indigo-700 border-indigo-200';
+                    const typeLabel = evt.type === 'match' 
+                      ? 'Partido' 
+                      : evt.type === 'training' 
+                        ? 'Entrenamiento' 
+                        : 'Evento';
+
+                    // Parse event date beautifully
+                    const formattedDate = new Date(evt.date + 'T00:00:00').toLocaleDateString('es-ES', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short'
+                    });
+
+                    return (
+                      <div key={evt.id} className="p-4 rounded-2xl border border-slate-150 bg-white hover:border-brand-200 hover:shadow-sm transition-all group">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-wider ${typeBadgeStyles}`}>
+                            {typeLabel}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-800 bg-slate-100 px-2 py-0.5 rounded-full">
+                            {eventTeam ? eventTeam.name : 'Club'}
+                          </span>
+                        </div>
+                        <h3 className="font-bold text-slate-900 text-sm group-hover:text-brand-600 transition-colors">{evt.title}</h3>
+                        {evt.description && (
+                          <p className="text-xs text-slate-500 mt-1 line-clamp-1">{evt.description}</p>
+                        )}
+                        <div className="mt-3 space-y-1.5 pt-2 border-t border-slate-100 text-xs text-slate-600">
+                          <div className="flex items-center gap-1.5">
+                            <Clock className="w-3.5 h-3.5 text-slate-400" />
+                            <span className="capitalize">{formattedDate}</span>
+                            <span className="text-slate-300">•</span>
+                            <span className="font-semibold">{evt.time}</span>
+                          </div>
+                          {evt.location && (
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="w-3.5 h-3.5 text-slate-400" />
+                              <span className="truncate">{evt.location}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-12 flex-1 flex flex-col items-center justify-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                  <CalendarDays className="w-10 h-10 text-slate-300 mb-2" />
+                  <p className="text-xs text-slate-500">No hay eventos próximos.</p>
+                  <Link to="/calendar" className="text-xs text-brand-600 font-semibold mt-2 inline-block hover:underline">
+                    Programar evento
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Loading skeleton standard style */
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 animate-pulse space-y-4">
+              <div className="h-6 bg-slate-200 rounded w-1/4"></div>
+              <div className="space-y-2">
+                {[1, 2, 3].map(n => (
+                  <div key={n} className="h-12 bg-slate-100 rounded"></div>
+                ))}
+              </div>
+            </div>
+          </div>
+          <div>
+            <div className="bg-white rounded-3xl border border-slate-200 p-6 animate-pulse space-y-4 h-64">
+              <div className="h-6 bg-slate-200 rounded w-1/3"></div>
+              <div className="space-y-3">
+                {[1, 2].map(n => (
+                  <div key={n} className="h-20 bg-slate-100 rounded"></div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       )}

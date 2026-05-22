@@ -16,7 +16,11 @@ import {
   CalendarDays,
   ClipboardCheck,
   Mail,
-  History
+  History,
+  Wallet,
+  HelpCircle,
+  Heart,
+  Package
 } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -39,6 +43,8 @@ const navItems: NavItem[] = [
   { icon: Activity, label: 'Actividad', path: '/dashboard/activity', roles: ['admin'], section: 'Plataforma' },
   { icon: Megaphone, label: 'Comunicados', path: '/dashboard/announcements', roles: ['admin'] },
   { icon: Calendar, label: 'Temporadas', path: '/dashboard/seasons', roles: ['admin'] },
+  { icon: Wallet, label: 'Caja Global', path: '/dashboard/treasury-control', roles: ['admin'] },
+  { icon: HelpCircle, label: 'Soporte', path: '/dashboard/support', roles: ['admin'] },
   { icon: Settings, label: 'Ajustes', path: '/dashboard/settings', roles: ['admin'], section: 'Sistema' },
 
   // --- Club ---
@@ -50,9 +56,13 @@ const navItems: NavItem[] = [
   { icon: Shield, label: 'Equipos', path: '/dashboard/teams', roles: ['club'] },
   { icon: CreditCard, label: 'Tesorería', path: '/dashboard/treasury', roles: ['club'] },
   { icon: CalendarDays, label: 'Instalaciones', path: '/dashboard/facilities', roles: ['club'] },
+  { icon: Activity, label: 'Lesiones y Salud', path: '/dashboard/injuries', roles: ['club'] },
+  { icon: Package, label: 'Material e Inventario', path: '/dashboard/inventory', roles: ['club'] },
   { icon: CalendarDays, label: 'Calendario', path: '/dashboard/calendar', roles: ['club'], section: 'Comunicación' },
   { icon: Megaphone, label: 'Comunicados', path: '/dashboard/club-announcements', roles: ['club'] },
   { icon: ClipboardCheck, label: 'Asistencia', path: '/dashboard/attendance', roles: ['club'] },
+  { icon: Calendar, label: 'Temporadas', path: '/dashboard/club-seasons', roles: ['club'] },
+  { icon: HelpCircle, label: 'Soporte', path: '/dashboard/helpdesk', roles: ['club'] },
   { icon: Settings, label: 'Ajustes', path: '/dashboard/settings', roles: ['club'], section: 'Sistema' },
 
   // --- Player ---
@@ -61,26 +71,52 @@ const navItems: NavItem[] = [
   { icon: CreditCard, label: 'Mis Pagos', path: '/dashboard/my-payments', roles: ['player'] },
   { icon: Users, label: 'Mi Equipo', path: '/dashboard/my-team', roles: ['player'] },
   { icon: UserIcon, label: 'Mis Datos', path: '/dashboard/my-profile', roles: ['player'] },
+  { icon: Heart, label: 'Mi Ficha Médica', path: '/dashboard/my-medical', roles: ['player'] },
   { icon: CalendarDays, label: 'Calendario', path: '/dashboard/my-calendar', roles: ['player'], section: 'Club' },
   { icon: Mail, label: 'Buzón', path: '/dashboard/my-messages', roles: ['player'] },
   { icon: History, label: 'Historial', path: '/dashboard/my-history', roles: ['player'] },
+  { icon: HelpCircle, label: 'Soporte', path: '/dashboard/helpdesk', roles: ['player'] },
   { icon: Settings, label: 'Ajustes', path: '/dashboard/settings', roles: ['player'], section: 'Sistema' },
 
   // --- Staff (Coaches / Directors) ---
   { icon: LayoutDashboard, label: 'Panel Técnico', path: '/dashboard', roles: ['staff'], section: 'General' },
   { icon: Shield, label: 'Mis Equipos', path: '/dashboard/teams', roles: ['staff'], section: 'Gestión' },
   { icon: CalendarDays, label: 'Instalaciones', path: '/dashboard/facilities', roles: ['staff'] },
+  { icon: Activity, label: 'Lesiones y Salud', path: '/dashboard/injuries', roles: ['staff'] },
+  { icon: Package, label: 'Material e Inventario', path: '/dashboard/inventory', roles: ['staff'] },
   { icon: CalendarDays, label: 'Calendario', path: '/dashboard/calendar', roles: ['staff'], section: 'Calendario y Convocatorias' },
   { icon: ClipboardCheck, label: 'Asistencia', path: '/dashboard/attendance', roles: ['staff'] },
+  { icon: HelpCircle, label: 'Soporte', path: '/dashboard/helpdesk', roles: ['staff'] },
   { icon: Settings, label: 'Ajustes', path: '/dashboard/settings', roles: ['staff'], section: 'Sistema' },
 ];
+
+const STAFF_PATH_TO_PERMISSION_KEY: { [path: string]: string } = {
+  '/dashboard/teams': 'teams',
+  '/dashboard/facilities': 'facilities',
+  '/dashboard/injuries': 'injuries',
+  '/dashboard/inventory': 'inventory',
+  '/dashboard/calendar': 'calendar',
+  '/dashboard/attendance': 'attendance',
+};
 
 export function Sidebar() {
   const location = useLocation();
   const profile = useAuthStore((state) => state.profile);
   const userRole = profile?.role || 'player';
 
-  const filteredNavItems = navItems.filter(item => item.roles.includes(userRole));
+  const filteredNavItems = navItems.filter(item => {
+    if (!item.roles.includes(userRole)) return false;
+
+    if (userRole === 'staff') {
+      const permKey = STAFF_PATH_TO_PERMISSION_KEY[item.path];
+      if (permKey) {
+        const perm = profile?.staffPermissions?.[permKey as keyof typeof profile.staffPermissions];
+        return perm?.enabled === true;
+      }
+    }
+
+    return true;
+  });
 
   // Group items by section
   const groupedItems: { section: string | null; items: NavItem[] }[] = [];

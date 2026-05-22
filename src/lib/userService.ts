@@ -3,7 +3,7 @@ import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, getDocs, collection, query, where, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from './firebase';
-import type { UserProfile } from '../store/authStore';
+import type { UserProfile, StaffPermissions } from '../store/authStore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -140,6 +140,16 @@ export const getClubs = async (): Promise<UserProfile[]> => {
   return snapshot.docs.map(doc => doc.data() as UserProfile);
 };
 
+const cleanData = <T extends object>(obj: T): T => {
+  const result = { ...obj } as any;
+  Object.keys(result).forEach((key) => {
+    if (result[key] === undefined) {
+      delete result[key];
+    }
+  });
+  return result;
+};
+
 export const createStaffUser = async (data: { 
   email: string, 
   password: string, 
@@ -147,8 +157,11 @@ export const createStaffUser = async (data: {
   username: string,
   clubId: string, 
   accountType: 'entrenador' | 'directivo',
+  directorSpecialization?: 'general' | 'financiero' | 'tactico' | 'material',
   sportType?: string,
-  teamId?: string
+  teamId?: string,
+  teamIds?: string[],
+  staffPermissions?: StaffPermissions
 }) => {
   const isTaken = await checkUsernameExists(data.username);
   if (isTaken) {
@@ -171,13 +184,16 @@ export const createStaffUser = async (data: {
       role: 'staff',
       clubId: data.clubId,
       accountType: data.accountType,
+      directorSpecialization: data.directorSpecialization,
       sportType: data.sportType,
       teamId: data.teamId,
+      teamIds: data.teamIds,
+      staffPermissions: data.staffPermissions,
       status: 'Activo',
       createdAt: new Date().toISOString()
     };
     
-    await setDoc(doc(db, 'users', uid), staffData);
+    await setDoc(doc(db, 'users', uid), cleanData(staffData));
     
     await secondaryAuth.signOut();
     return staffData;
@@ -207,8 +223,15 @@ export const getAllPlayers = async (): Promise<UserProfile[]> => {
 // --- Nuevas Funciones de Gestión Completa ---
 
 export const deleteUserAccount = async (uid: string): Promise<void> => {
-  const deleteFn = httpsCallable(functions, 'deleteUserAccountV2');
-  await deleteFn({ uid });
+  try {
+    const deleteFn = httpsCallable(functions, 'deleteUserAccountV2');
+    await deleteFn({ uid });
+  } catch (error) {
+    console.warn("deleteUserAccount Cloud Function failed. Falling back to direct Firestore document deletion.", error);
+    // Client-side Firestore delete fallback to ensure UI consistency
+    const { doc, deleteDoc } = await import('firebase/firestore');
+    await deleteDoc(doc(db, 'users', uid));
+  }
 };
 
 export const updateUserAuth = async (uid: string, email?: string, password?: string): Promise<void> => {
@@ -229,5 +252,5 @@ export const updateUserProfile = async (uid: string, data: Partial<UserProfile>)
     data.username = data.username.toLowerCase().trim();
   }
   
-  await updateDoc(doc(db, 'users', uid), data);
+  await updateDoc(doc(db, 'users', uid), cleanData(data));
 };

@@ -3,6 +3,21 @@ import type { User } from 'firebase/auth';
 
 export type UserRole = 'admin' | 'club' | 'player' | 'staff';
 
+export interface ModulePermission {
+  enabled: boolean;
+  accessLevel: 'all' | 'assigned';
+  canEdit: boolean;
+}
+
+export interface StaffPermissions {
+  teams?: ModulePermission;
+  facilities?: ModulePermission;
+  injuries?: ModulePermission;
+  inventory?: ModulePermission;
+  calendar?: ModulePermission;
+  attendance?: ModulePermission;
+}
+
 export interface UserProfile {
   uid?: string;
   role: UserRole;
@@ -11,9 +26,11 @@ export interface UserProfile {
   username?: string;
   email?: string;
   category?: string;
-  teamId?: string;
+  teamId?: string; // Legacy single team support
+  teamIds?: string[]; // Array of assigned teams
   sportType?: string; // Ej: 'Fútbol', 'Baloncesto', 'eSports'
   accountType?: 'jugador' | 'tutor' | 'entrenador' | 'directivo';
+  directorSpecialization?: 'general' | 'financiero' | 'tactico' | 'material';
   fichaId?: string; // ID de la ficha central (para agrupar 1 jugador y 2 tutores)
   activeSports?: string[]; // Array de deportes habilitados por el club
   isAdult?: boolean;
@@ -26,7 +43,12 @@ export interface UserProfile {
   notes?: string;
   status?: string;
   createdAt?: string;
+  photoURL?: string;
+  staffPermissions?: StaffPermissions;
 }
+
+
+
 
 interface AuthState {
   user: User | null;

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { doc, getDoc, collection, setDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { Shield, CheckCircle, Loader2, Calendar, User, Phone, Mail, Award, ArrowRight, ArrowLeft } from 'lucide-react';
-import { normalizeSport } from '../club/ClubStaffPage';
+import { normalizeSport } from '../../lib/sportUtils';
 
 export function PublicRegistrationPage() {
   const { clubId } = useParams<{ clubId: string }>();
@@ -58,7 +58,7 @@ export function PublicRegistrationPage() {
           const snapshot = await getDocs(q);
           if (!snapshot.empty) {
             clubDoc = snapshot.docs[0];
-            data = clubDoc.data();
+            data = clubDoc.data() || null;
             actualId = clubDoc.id;
           }
         }

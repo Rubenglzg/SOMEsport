@@ -1,7 +1,19 @@
-import { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, where, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase';
 
 export type EventType = 'training' | 'match' | 'event';
+
+export interface MatchPlayerStats {
+  playerId: string;
+  playerName: string;
+  goals: number;
+  assists: number;
+  yellowCards: number;
+  redCards: number;
+  minutesPlayed: number;
+  rating: number;
+  privateNotes?: string;
+}
 
 export interface ClubEvent {
   id?: string;
@@ -16,6 +28,13 @@ export interface ClubEvent {
   createdAt: string;
   squadIds?: string[];
   result?: string;
+  rivalName?: string;
+  goalsFor?: number;
+  goalsAgainst?: number;
+  matchReport?: string;
+  playerStats?: Record<string, MatchPlayerStats>;
+  teamNotes?: string;
+  mvpVotes?: Record<string, string>; // voterPlayerUid -> votedPlayerUid
 }
 
 export const createEvent = async (data: Omit<ClubEvent, 'id'>): Promise<ClubEvent> => {

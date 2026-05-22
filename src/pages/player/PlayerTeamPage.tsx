@@ -20,8 +20,9 @@ export function PlayerTeamPage() {
         const teamData = await getPlayerTeam(targetPlayerUid);
         if (teamData) {
           setTeam(teamData);
-          if (profile.clubId) {
-            const allClubPlayers = await getPlayersByClub(profile.clubId);
+          const clubId = profile?.clubId;
+          if (clubId) {
+            const allClubPlayers = await getPlayersByClub(clubId);
             const myTeammates = allClubPlayers.filter(p => teamData.playerIds.includes(p.uid!) && p.uid !== targetPlayerUid);
             setTeammates(myTeammates);
           }

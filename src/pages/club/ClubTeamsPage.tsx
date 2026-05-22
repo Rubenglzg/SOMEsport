@@ -3,20 +3,7 @@ import { Shield, Plus, X, Loader2, Trash2, Save, Search, Filter } from 'lucide-r
 import { getPlayersByClub } from '../../lib/userService';
 import { getTeamsByClub, createTeam, deleteTeam, assignPlayerToTeam, removePlayerFromTeam, type Team } from '../../lib/teamsService';
 import { useAuthStore, type UserProfile } from '../../store/authStore';
-
-export const normalizeSport = (sport: string | undefined | null): string => {
-  if (!sport) return '';
-  const s = sport.toLowerCase().trim();
-  if (s === 'soccer' || s === 'fútbol' || s === 'futbol') return 'Fútbol';
-  if (s === 'basketball' || s === 'baloncesto') return 'Baloncesto';
-  if (s === 'futsal' || s === 'futbol-sala' || s === 'fútbol sala' || s === 'futbol sala') return 'Fútbol Sala';
-  if (s === 'esports' || s === 'electronic sports') return 'eSports';
-  if (s === 'voleibol' || s === 'volleyball') return 'Voleibol';
-  if (s === 'padel' || s === 'pádel') return 'Pádel';
-  if (s === 'tennis' || s === 'tenis') return 'Tenis';
-  if (s === 'natación' || s === 'swimming') return 'Natación';
-  return sport;
-};
+import { normalizeSport } from '../../lib/sportUtils';
 
 export function ClubTeamsPage() {
   const profile = useAuthStore((state) => state.profile);
@@ -118,17 +105,21 @@ export function ClubTeamsPage() {
     }
   };
 
+  const staffPerm = profile?.role === 'staff' ? profile.staffPermissions?.teams : null;
+  const canEdit = staffPerm ? staffPerm.canEdit : true;
+  const accessLevel = staffPerm ? staffPerm.accessLevel : 'all';
+
   const filteredTeams = useMemo(() => {
     let list = teams;
     if (profile?.role === 'staff') {
-      if (profile.teamId) {
+      if (accessLevel === 'assigned' && profile.teamId) {
         list = teams.filter(t => t.id === profile.teamId);
       } else if (profile.sportType) {
         list = teams.filter(t => normalizeSport(t.sportType) === normalizeSport(profile.sportType));
       }
     }
     return list.filter(t => teamSportFilter === 'all' ? true : normalizeSport(t.sportType) === normalizeSport(teamSportFilter));
-  }, [teams, teamSportFilter, profile]);
+  }, [teams, teamSportFilter, profile, accessLevel]);
 
   const filteredPlayers = useMemo(() => {
     // Solo mostrar "Fichas" (jugadores) para asignar, y filtrar por búsqueda
@@ -262,16 +253,24 @@ export function ClubTeamsPage() {
                               {player.category && <p className="text-[10px] text-slate-500 uppercase">{player.category}</p>}
                             </div>
                           </div>
-                          <button
-                            onClick={() => handleTogglePlayerInTeam(selectedTeam.id!, player.uid!, isAssigned)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                              isAssigned
-                                ? 'bg-brand-600 text-white border border-transparent shadow-sm'
-                                : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
-                            }`}
-                          >
-                            {isAssigned ? 'Asignado' : 'Añadir'}
-                          </button>
+                          {(!profile?.role || profile.role !== 'staff' || canEdit) ? (
+                            <button
+                              onClick={() => handleTogglePlayerInTeam(selectedTeam.id!, player.uid!, isAssigned)}
+                              className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                isAssigned
+                                  ? 'bg-brand-600 text-white border border-transparent shadow-sm'
+                                  : 'bg-white text-slate-600 border border-slate-300 hover:bg-slate-50'
+                              }`}
+                            >
+                              {isAssigned ? 'Asignado' : 'Añadir'}
+                            </button>
+                          ) : (
+                            isAssigned && (
+                              <span className="px-3 py-1.5 bg-brand-50 text-brand-600 rounded-lg text-xs font-bold border border-brand-100">
+                                Asignado
+                              </span>
+                            )
+                          )}
                         </div>
                       );
                     })}

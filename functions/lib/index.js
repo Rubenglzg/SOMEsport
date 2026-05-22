@@ -29,12 +29,12 @@ exports.deleteUserAccountV2 = (0, https_1.onCall)(async (request) => {
         const targetClubId = (_c = targetDoc.data()) === null || _c === void 0 ? void 0 : _c.clubId;
         // Lógica de permisos
         // 1. Admin puede borrar clubes
-        // 2. Clubes pueden borrar a sus propios jugadores
+        // 2. Clubes pueden borrar a sus propios jugadores y staff
         let hasPermission = false;
         if (callerRole === 'admin' && targetRole === 'club') {
             hasPermission = true;
         }
-        else if (callerRole === 'club' && targetRole === 'player' && targetClubId === callerUid) {
+        else if (callerRole === 'club' && (targetRole === 'player' || targetRole === 'staff') && targetClubId === callerUid) {
             hasPermission = true;
         }
         if (!hasPermission) {
@@ -83,7 +83,7 @@ exports.updateUserAuthV2 = (0, https_1.onCall)(async (request) => {
         let hasPermission = false;
         if (callerRole === 'admin' && targetRole === 'club')
             hasPermission = true;
-        else if (callerRole === 'club' && targetRole === 'player' && targetClubId === callerUid)
+        else if (callerRole === 'club' && (targetRole === 'player' || targetRole === 'staff') && targetClubId === callerUid)
             hasPermission = true;
         if (!hasPermission) {
             throw new https_1.HttpsError('permission-denied', 'No tienes permisos para modificar este usuario.');

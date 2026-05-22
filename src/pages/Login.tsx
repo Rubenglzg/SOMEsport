@@ -178,42 +178,58 @@ export const Login = () => {
               </button>
             </div>
 
-            {/* TODO: Eliminar en producción - Botones de prueba rápidos */}
-            <div className="mt-8 border-t border-slate-700/50 pt-6">
-              <h3 className="text-xs text-slate-500 font-semibold uppercase tracking-wider text-center mb-4">
-                Accesos de Prueba (Eliminar en Producción)
-              </h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => { setEmail('admin'); setPassword('071288Merch'); }}
-                  className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded border border-slate-700 transition-colors"
-                >
-                  Rellenar Admin
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('elrubodevlc@gmail.com'); setPassword('071288'); }}
-                  className="px-3 py-2 bg-indigo-900/40 hover:bg-indigo-800/60 text-xs text-indigo-300 rounded border border-indigo-800/50 transition-colors"
-                >
-                  Rellenar Club
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('mainscrowner@gmail.com'); setPassword('071288'); }}
-                  className="px-3 py-2 bg-emerald-900/40 hover:bg-emerald-800/60 text-xs text-emerald-300 rounded border border-emerald-800/50 transition-colors"
-                >
-                  Rellenar Menor
-                </button>
-                <button
-                  type="button"
-                  onClick={() => { setEmail('jugador_mayor'); setPassword('071288'); }}
-                  className="px-3 py-2 bg-amber-900/40 hover:bg-amber-800/60 text-xs text-amber-300 rounded border border-amber-800/50 transition-colors"
-                >
-                  Rellenar Tutor/Mayor
-                </button>
+            {/* Accesos de Prueba (Solo visibles en entorno de desarrollo local - Vite los eliminará por completo en producción) */}
+            {import.meta.env.DEV && (
+              <div className="mt-8 border-t border-slate-700/50 pt-6">
+                <h3 className="text-xs text-slate-500 font-semibold uppercase tracking-wider text-center mb-4">
+                  Accesos de Prueba (Solo Desarrollo)
+                </h3>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('admin'); setPassword('071288Merch'); }}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded border border-slate-700 transition-colors"
+                  >
+                    Rellenar Admin
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('elrubodevlc@gmail.com'); setPassword('071288'); }}
+                    className="px-3 py-2 bg-indigo-900/40 hover:bg-indigo-800/60 text-xs text-indigo-300 rounded border border-indigo-800/50 transition-colors"
+                  >
+                    Rellenar Club
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('mainscrowner@gmail.com'); setPassword('071288'); }}
+                    className="px-3 py-2 bg-emerald-900/40 hover:bg-emerald-800/60 text-xs text-emerald-300 rounded border border-emerald-800/50 transition-colors"
+                  >
+                    Rellenar Menor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('jugador_mayor'); setPassword('071288'); }}
+                    className="px-3 py-2 bg-amber-900/40 hover:bg-amber-800/60 text-xs text-amber-300 rounded border border-amber-800/50 transition-colors"
+                  >
+                    Rellenar Tutor/Mayor
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('entrenador_demo'); setPassword('071288'); }}
+                    className="px-3 py-2 bg-rose-900/40 hover:bg-rose-800/60 text-xs text-rose-300 rounded border border-rose-800/50 transition-colors"
+                  >
+                    Rellenar Entrenador
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('directivo_demo'); setPassword('071288'); }}
+                    className="px-3 py-2 bg-cyan-900/40 hover:bg-cyan-800/60 text-xs text-cyan-300 rounded border border-cyan-800/50 transition-colors"
+                  >
+                    Rellenar Directivo
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
           </div>
         </div>
