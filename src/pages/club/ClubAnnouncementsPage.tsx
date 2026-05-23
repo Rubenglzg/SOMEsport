@@ -32,13 +32,14 @@ export function ClubAnnouncementsPage() {
   ];
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     setLoading(true);
     try {
       const [annList, playersData, staffData] = await Promise.all([
-        getClubAnnouncements(profile.uid),
-        getPlayersByClub(profile.uid),
-        getStaffByClub(profile.uid)
+        getClubAnnouncements(targetClubId),
+        getPlayersByClub(targetClubId),
+        getStaffByClub(targetClubId)
       ]);
       setAnnouncements(annList);
       setMembers([...playersData, ...staffData]);
@@ -52,11 +53,12 @@ export function ClubAnnouncementsPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [profile?.uid]);
+  useEffect(() => { loadData(); }, [profile?.clubId, profile?.uid]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!profile?.uid || !targetClubId) return;
     setFormLoading(true);
     try {
       await createAnnouncement({ 
@@ -66,7 +68,7 @@ export function ClubAnnouncementsPage() {
         authorId: profile.uid, 
         authorName: profile.name || 'Club', 
         scope: 'club', 
-        clubId: profile.uid, 
+        clubId: targetClubId, 
         createdAt: new Date().toISOString(),
         imageURL: imageURL || undefined,
         targetAudience: targetAudience.length > 0 ? targetAudience : undefined

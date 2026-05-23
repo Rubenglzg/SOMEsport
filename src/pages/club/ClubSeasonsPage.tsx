@@ -29,10 +29,11 @@ export function ClubSeasonsPage() {
   const [installments, setInstallments] = useState<{ name: string; percentage: number; dueDate: string }[]>([]);
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     setLoading(true);
     try {
-      const data = await getClubSeasons(profile.uid);
+      const data = await getClubSeasons(targetClubId);
       setSeasons(data);
     } catch (error) {
       console.error('Error loading seasons:', error);
@@ -41,7 +42,7 @@ export function ClubSeasonsPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [profile?.uid]);
+  useEffect(() => { loadData(); }, [profile?.clubId, profile?.uid]);
 
   const resetForm = () => {
     setEditingSeason(null);
@@ -107,7 +108,8 @@ export function ClubSeasonsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     setFormLoading(true);
 
     try {
@@ -116,7 +118,7 @@ export function ClubSeasonsPage() {
         startDate,
         endDate,
         isActive,
-        clubId: profile.uid,
+        clubId: targetClubId,
         createdAt: editingSeason?.createdAt || new Date().toISOString(),
         feesByCategory: Object.keys(feesByCategory).length > 0 ? feesByCategory : undefined,
         paymentInstallments: installmentsEnabled ? { enabled: true, installments } : { enabled: false, installments: [] },
@@ -125,7 +127,7 @@ export function ClubSeasonsPage() {
       if (editingSeason?.id) {
         await updateSeason(editingSeason.id, seasonData);
         if (isActive) {
-          await setClubActiveSeason(profile.uid, editingSeason.id);
+          await setClubActiveSeason(targetClubId, editingSeason.id);
         }
       } else {
         await createSeason(seasonData);
@@ -143,10 +145,11 @@ export function ClubSeasonsPage() {
   };
 
   const handleSetActive = async (seasonId: string) => {
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     try {
       setLoading(true);
-      await setClubActiveSeason(profile.uid, seasonId);
+      await setClubActiveSeason(targetClubId, seasonId);
       await loadData();
     } catch (error) {
       console.error('Error setting active season:', error);

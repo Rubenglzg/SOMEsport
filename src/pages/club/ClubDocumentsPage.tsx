@@ -25,14 +25,15 @@ export function ClubDocumentsPage() {
   const [rejecting, setRejecting] = useState(false);
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     setLoading(true);
     try {
       const [pendingData, allData, playersData, teamsData] = await Promise.all([
-        getClubPendingDocuments(profile.uid),
-        getClubDocuments(profile.uid),
-        getPlayersByClub(profile.uid),
-        getTeamsByClub(profile.uid)
+        getClubPendingDocuments(targetClubId),
+        getClubDocuments(targetClubId),
+        getPlayersByClub(targetClubId),
+        getTeamsByClub(targetClubId)
       ]);
       setPendingDocs(pendingData);
       setAllDocs(allData);
@@ -47,7 +48,7 @@ export function ClubDocumentsPage() {
 
   useEffect(() => {
     loadData();
-  }, [profile?.uid]);
+  }, [profile?.clubId, profile?.uid]);
 
   const handleApprove = async (docId: string) => {
     try {

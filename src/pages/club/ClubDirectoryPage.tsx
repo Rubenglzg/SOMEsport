@@ -45,12 +45,13 @@ export function ClubDirectoryPage() {
   const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'Pendiente', 'Activo'
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     setLoading(true);
     try {
       const [playersData, teamsData] = await Promise.all([
-        getPlayersByClub(profile.uid),
-        getTeamsByClub(profile.uid)
+        getPlayersByClub(targetClubId),
+        getTeamsByClub(targetClubId)
       ]);
       setPlayers(playersData);
       setTeams(teamsData);
@@ -61,7 +62,7 @@ export function ClubDirectoryPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [profile?.uid]);
+  useEffect(() => { loadData(); }, [profile?.clubId, profile?.uid]);
 
   const pendingPlayers = players.filter(p => p.status === 'Pendiente');
   const activePlayers = players.filter(p => p.status === 'Activo' || p.status === 'Aprobada');
@@ -144,7 +145,8 @@ export function ClubDirectoryPage() {
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.uid) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId) return;
     setFormLoading(true);
     try {
       if (newAccountType === 'tutor') {
@@ -171,7 +173,7 @@ export function ClubDirectoryPage() {
             password: newPassword,
             name: newName,
             username: newUsername,
-            clubId: profile.uid,
+            clubId: targetClubId,
             teamId: newTeamId,
             accountType: newAccountType,
             isAdult: newAccountType === 'tutor' ? true : newIsAdult,
@@ -194,14 +196,7 @@ export function ClubDirectoryPage() {
             try {
               await deleteUserAccount(editingPlayer.uid);
             } catch (delError) {
-              console.warn("deleteUserAccount cloud function failed (likely missing deployment or 500 error), running client Firestore delete fallback:", delError);
-              try {
-                const { db } = await import('../../lib/firebase');
-                const { doc, deleteDoc } = await import('firebase/firestore');
-                await deleteDoc(doc(db, 'users', editingPlayer.uid));
-              } catch (clientDelError) {
-                console.error("Failed client-side delete fallback:", clientDelError);
-              }
+              console.error("Error al eliminar la cuenta temporal de pre-inscripción:", delError);
             }
           }
         } else {
@@ -229,7 +224,7 @@ export function ClubDirectoryPage() {
       } else {
         const newPlayer = await createPlayerUser({
           email: newEmail, password: newPassword, name: newName, username: newUsername,
-          clubId: profile.uid, teamId: newTeamId, accountType: newAccountType,
+          clubId: targetClubId, teamId: newTeamId, accountType: newAccountType,
           isAdult: newAccountType === 'tutor' ? true : newIsAdult,
           fichaId: newAccountType === 'tutor' ? newFichaId : undefined,
           phone: newPhone,

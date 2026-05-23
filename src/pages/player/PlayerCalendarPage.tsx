@@ -9,8 +9,7 @@ const typeLabels: Record<EventType, { label: string; color: string; bg: string }
   event: { label: 'Evento', color: 'text-amber-700', bg: 'bg-amber-100' },
 };
 
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 
 export function PlayerCalendarPage() {
   const profile = useAuthStore((s) => s.profile);
@@ -22,12 +21,17 @@ export function PlayerCalendarPage() {
     const loadChildTeam = async () => {
       if (profile?.accountType === 'tutor' && profile.fichaId) {
         try {
-          const childDoc = await getDoc(doc(db, 'users', profile.fichaId));
-          if (childDoc.exists()) {
-            setChildTeamId(childDoc.data().teamId);
+          const { data: teamPlayerData } = await supabase
+            .from('team_players')
+            .select('team_id')
+            .eq('player_id', profile.fichaId)
+            .maybeSingle();
+
+          if (teamPlayerData) {
+            setChildTeamId(teamPlayerData.team_id);
           }
         } catch (e) {
-          console.error("Error loading child teamId:", e);
+          console.error("Error loading child teamId from Supabase:", e);
         }
       }
     };

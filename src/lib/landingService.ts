@@ -1,5 +1,4 @@
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase } from './supabase';
 
 export interface ContactFormData {
   clubName: string;
@@ -9,12 +8,23 @@ export interface ContactFormData {
 
 export const submitContactForm = async (data: ContactFormData) => {
   try {
-    const docRef = await addDoc(collection(db, 'leads'), {
-      ...data,
-      createdAt: serverTimestamp(),
-      status: 'new'
-    });
-    return docRef.id;
+    const { data: inserted, error } = await supabase
+      .from('leads')
+      .insert({
+        club_name: data.clubName,
+        email: data.email,
+        message: data.message,
+        status: 'new'
+      })
+      .select('id')
+      .single();
+
+    if (error) {
+      console.error("Error submitting contact form to Supabase:", error);
+      throw error;
+    }
+
+    return inserted.id;
   } catch (error) {
     console.error("Error submitting contact form: ", error);
     throw error;

@@ -46,7 +46,7 @@ export function ClubCalendarPage() {
   const [expandedNotes, setExpandedNotes] = useState<Record<string, boolean>>({});
 
   const isStaff = profile?.role === 'staff';
-  const targetClubId = profile?.role === 'club' ? profile.uid : profile?.clubId;
+  const targetClubId = profile?.clubId || profile?.uid;
 
   // --- Helpers de Autorización ---
   // --- Helpers de Autorización ---

@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react';
 import { FileText, Bell, Loader2, CreditCard, Shield, Users, ArrowRight, CalendarDays, Mail, History, Trophy, Award, Zap, Clock, Star, Sparkles, Activity } from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
 import { getPlayerDocuments, type PlayerDocument } from '../../lib/storageService';
 import { getPlayerPayments } from '../../lib/paymentService';
 import { getPlayerTeam, type Team } from '../../lib/teamsService';
 import { Link } from 'react-router-dom';
 import { getClubEvents } from '../../lib/eventsService';
 import { getSeasons } from '../../lib/seasonsService';
+import { supabase } from '../../lib/supabase';
 
 export function PlayerDashboard() {
   const profile = useAuthStore((state) => state.profile);
@@ -37,10 +36,15 @@ export function PlayerDashboard() {
 
       if (profile.clubId) {
         try {
-          const clubDoc = await getDoc(doc(db, 'users', profile.clubId));
-          if (clubDoc.exists()) {
-            setClubName(clubDoc.data().name || 'Club Desconocido');
-            setClubSportType(clubDoc.data().sportType || 'soccer');
+          const { data: clubData } = await supabase
+            .from('clubs')
+            .select('nombre, logotipo')
+            .eq('id', profile.clubId)
+            .maybeSingle();
+
+          if (clubData) {
+            setClubName(clubData.nombre || 'Club Desconocido');
+            setClubSportType('soccer');
           } else {
             setClubName('Club no encontrado');
           }
@@ -53,13 +57,24 @@ export function PlayerDashboard() {
 
       if (profile.accountType === 'tutor' && profile.fichaId) {
         try {
-          const childDoc = await getDoc(doc(db, 'users', profile.fichaId));
-          if (childDoc.exists()) {
-            setChildName(childDoc.data().name || '');
-            setChildStatus(childDoc.data().status || 'Pendiente');
+          const { data: profileData } = await supabase
+            .from('users_profiles')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          const { data: playerData } = await supabase
+            .from('players')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          if (profileData) {
+            setChildName(profileData.name || (playerData ? `${playerData.nombre} ${playerData.apellidos}`.trim() : '') || '');
+            setChildStatus('Activo');
           }
         } catch (e) {
-          console.error("Error loading child profile:", e);
+          console.error("Error loading child profile from Supabase:", e);
         }
       }
 

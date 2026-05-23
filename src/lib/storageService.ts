@@ -1,6 +1,4 @@
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { doc, updateDoc, serverTimestamp, collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
-import { storage, db } from "./firebase";
+import { supabase } from "./supabase";
 
 export type DocumentType = 'dni' | 'medical' | 'parental' | 'other';
 export type DocumentStatus = 'pending' | 'approved' | 'rejected';
@@ -24,96 +22,175 @@ export const uploadPlayerDocument = async (
   type: DocumentType,
   onProgress?: (progress: number) => void
 ): Promise<PlayerDocument> => {
-  // Create a reference to the file in Firebase Storage
-  const storageRef = ref(storage, `documents/${clubId}/${userId}/${type}_${Date.now()}_${file.name}`);
-  const uploadTask = uploadBytesResumable(storageRef, file);
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${type}_${Date.now()}.${fileExt}`;
+  const filePath = `${clubId}/${userId}/${fileName}`;
 
-  return new Promise((resolve, reject) => {
-    uploadTask.on(
-      'state_changed',
-      (snapshot) => {
-        const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-        if (onProgress) onProgress(progress);
-      },
-      (error) => {
-        console.error("Upload failed", error);
-        reject(error);
-      },
-      async () => {
-        // Upload completed successfully, now we can get the download URL
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          
-          const docData: Omit<PlayerDocument, 'id'> = {
-            userId,
-            clubId,
-            type,
-            fileName: file.name,
-            url: downloadURL,
-            status: 'pending',
-            uploadedAt: serverTimestamp(),
-          };
+  // Subir el archivo al bucket 'documents' en Supabase Storage
+  const { error: uploadError } = await supabase.storage
+    .from('documents')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
 
-          const docRef = await addDoc(collection(db, 'documents'), docData);
-          
-          resolve({ id: docRef.id, ...docData, uploadedAt: Timestamp.now() } as PlayerDocument);
-        } catch (error) {
-          reject(error);
-        }
-      }
-    );
-  });
+  if (uploadError) {
+    console.error("Error uploading document file:", uploadError.message);
+    throw uploadError;
+  }
+
+  // Obtener URL pública
+  const { data: { publicUrl } } = supabase.storage
+    .from('documents')
+    .getPublicUrl(filePath);
+
+  if (onProgress) onProgress(100);
+
+  // Insertar registro en la tabla public.documents
+  const { data: dbData, error: dbError } = await supabase
+    .from('documents')
+    .insert({
+      user_id: userId,
+      club_id: clubId,
+      type,
+      file_name: file.name,
+      url: publicUrl,
+      status: 'pending'
+    })
+    .select()
+    .single();
+
+  if (dbError) {
+    console.error("Error inserting document database record:", dbError.message);
+    throw dbError;
+  }
+
+  return {
+    id: dbData.id,
+    userId: dbData.user_id,
+    clubId: dbData.club_id,
+    type: dbData.type as DocumentType,
+    fileName: dbData.file_name,
+    url: dbData.url,
+    status: dbData.status as DocumentStatus,
+    uploadedAt: dbData.created_at,
+    notes: dbData.notes
+  };
 };
 
 export const getPlayerDocuments = async (userId: string): Promise<PlayerDocument[]> => {
-  const q = query(collection(db, 'documents'), where("userId", "==", userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlayerDocument));
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('user_id', userId);
+
+  if (error) {
+    console.error("Error getting player documents:", error.message);
+    throw error;
+  }
+
+  return (data || []).map((dbData: any) => ({
+    id: dbData.id,
+    userId: dbData.user_id,
+    clubId: dbData.club_id,
+    type: dbData.type as DocumentType,
+    fileName: dbData.file_name,
+    url: dbData.url,
+    status: dbData.status as DocumentStatus,
+    uploadedAt: dbData.created_at,
+    notes: dbData.notes
+  }));
 };
 
 export const getClubPendingDocuments = async (clubId: string): Promise<PlayerDocument[]> => {
-  const q = query(collection(db, 'documents'), where("clubId", "==", clubId), where("status", "==", "pending"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlayerDocument));
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('club_id', clubId)
+    .eq('status', 'pending');
+
+  if (error) {
+    console.error("Error getting club pending documents:", error.message);
+    throw error;
+  }
+
+  return (data || []).map((dbData: any) => ({
+    id: dbData.id,
+    userId: dbData.user_id,
+    clubId: dbData.club_id,
+    type: dbData.type as DocumentType,
+    fileName: dbData.file_name,
+    url: dbData.url,
+    status: dbData.status as DocumentStatus,
+    uploadedAt: dbData.created_at,
+    notes: dbData.notes
+  }));
 };
 
 export const getClubDocuments = async (clubId: string): Promise<PlayerDocument[]> => {
-  const q = query(collection(db, 'documents'), where("clubId", "==", clubId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PlayerDocument));
+  const { data, error } = await supabase
+    .from('documents')
+    .select('*')
+    .eq('club_id', clubId);
+
+  if (error) {
+    console.error("Error getting club documents:", error.message);
+    throw error;
+  }
+
+  return (data || []).map((dbData: any) => ({
+    id: dbData.id,
+    userId: dbData.user_id,
+    clubId: dbData.club_id,
+    type: dbData.type as DocumentType,
+    fileName: dbData.file_name,
+    url: dbData.url,
+    status: dbData.status as DocumentStatus,
+    uploadedAt: dbData.created_at,
+    notes: dbData.notes
+  }));
 };
 
 export const updateDocumentStatus = async (documentId: string, status: DocumentStatus, notes?: string): Promise<void> => {
-  const docRef = doc(db, 'documents', documentId);
-  const updateData: any = { status };
-  if (notes !== undefined) updateData.notes = notes;
-  await updateDoc(docRef, updateData);
+  const updates: any = { status };
+  if (notes !== undefined) updates.notes = notes;
+
+  const { error } = await supabase
+    .from('documents')
+    .update(updates)
+    .eq('id', documentId);
+
+  if (error) {
+    console.error("Error updating document status:", error.message);
+    throw error;
+  }
 };
 
 export const uploadUserProfilePhoto = async (
   userId: string,
   file: File
 ): Promise<string> => {
-  const storageRef = ref(storage, `profiles/${userId}/photo_${Date.now()}_${file.name}`);
-  const uploadTask = uploadBytesResumable(storageRef, file);
+  const fileExt = file.name.split('.').pop();
+  const fileName = `profile_${Date.now()}.${fileExt}`;
+  const filePath = `${userId}/${fileName}`;
 
-  return new Promise((resolve, reject) => {
-    uploadTask.on(
-      'state_changed',
-      null,
-      (error) => {
-        console.error("Profile photo upload failed", error);
-        reject(error);
-      },
-      async () => {
-        try {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
-        } catch (error) {
-          reject(error);
-        }
-      }
-    );
-  });
+  // Subir la imagen al bucket 'profiles'
+  const { error: uploadError } = await supabase.storage
+    .from('profiles')
+    .upload(filePath, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (uploadError) {
+    console.error("Error uploading profile photo file:", uploadError.message);
+    throw uploadError;
+  }
+
+  // Obtener URL pública
+  const { data: { publicUrl } } = supabase.storage
+    .from('profiles')
+    .getPublicUrl(filePath);
+
+  return publicUrl;
 };
-

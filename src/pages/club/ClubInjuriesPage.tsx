@@ -10,7 +10,7 @@ import { useToastStore } from '../../store/toastStore';
 export function ClubInjuriesPage() {
   const profile = useAuthStore((s) => s.profile);
   const showToast = useToastStore((s) => s.showToast);
-  const clubId = profile?.role === 'staff' ? profile?.clubId : profile?.uid;
+  const clubId = profile?.clubId || profile?.uid;
 
   const [loading, setLoading] = useState(true);
   const [injuries, setInjuries] = useState<Injury[]>([]);

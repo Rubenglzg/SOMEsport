@@ -22,7 +22,7 @@ export function ClubTeamsPage() {
   const [playerSearchQuery, setPlayerSearchQuery] = useState('');
 
   const loadData = async () => {
-    const targetClubId = profile?.role === 'staff' ? profile.clubId : profile?.uid;
+    const targetClubId = profile?.clubId || profile?.uid;
     if (!targetClubId) return;
     setLoading(true);
     try {
@@ -40,7 +40,7 @@ export function ClubTeamsPage() {
   };
 
   useEffect(() => {
-    const targetClubId = profile?.role === 'staff' ? profile.clubId : profile?.uid;
+    const targetClubId = profile?.clubId || profile?.uid;
     if (targetClubId) {
       loadData();
     }
@@ -57,7 +57,7 @@ export function ClubTeamsPage() {
 
   const handleCreateTeam = async (e: React.FormEvent) => {
     e.preventDefault();
-    const targetClubId = profile?.role === 'staff' ? profile.clubId : profile?.uid;
+    const targetClubId = profile?.clubId || profile?.uid;
     if (!targetClubId || profile?.role === 'staff') return;
     setFormLoading(true);
     try {

@@ -130,12 +130,13 @@ export function ClubStaffPage() {
   }, [profile]);
 
   const loadData = async () => {
-    if (!profile?.uid) return;
+    const clubId = profile?.clubId || profile?.uid;
+    if (!clubId) return;
     setLoading(true);
     try {
       const [staffData, teamsData] = await Promise.all([
-        getStaffByClub(profile.uid),
-        getTeamsByClub(profile.uid)
+        getStaffByClub(clubId),
+        getTeamsByClub(clubId)
       ]);
       setStaff(staffData);
       setTeams(teamsData);
@@ -146,7 +147,7 @@ export function ClubStaffPage() {
     }
   };
 
-  useEffect(() => { loadData(); }, [profile?.uid]);
+  useEffect(() => { loadData(); }, [profile?.clubId, profile?.uid]);
 
   const handleOpenCreateModal = () => {
     setEditingStaff(null);
@@ -211,7 +212,8 @@ export function ClubStaffPage() {
 
   const handleSubmitForm = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile?.uid) return;
+    const clubId = profile?.clubId || profile?.uid;
+    if (!clubId) return;
     setFormLoading(true);
     try {
       if (editingStaff) {
@@ -227,7 +229,7 @@ export function ClubStaffPage() {
       } else {
         await createStaffUser({
           email: newEmail, password: newPassword, name: newName, username: newUsername,
-          clubId: profile.uid, accountType: newAccountType,
+          clubId: clubId, accountType: newAccountType,
           directorSpecialization: newAccountType === 'directivo' ? newDirectorSpecialization : undefined,
           sportType: newAccountType === 'entrenador' ? newSportType : undefined,
           teamId: newAccountType === 'entrenador' && newTeamId ? newTeamId : undefined,

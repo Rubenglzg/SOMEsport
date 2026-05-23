@@ -33,7 +33,7 @@ export function ClubFacilitiesPage() {
 
   // --- Rol y Club ID dinámico ---
   const isStaff = profile?.role === 'staff';
-  const targetClubId = isStaff ? profile?.clubId : profile?.uid;
+  const targetClubId = profile?.clubId || profile?.uid;
 
   // --- Helpers de autorización ---
   const canManageFacilities = !isStaff; // Solo el club puede crear/eliminar/editar instalaciones

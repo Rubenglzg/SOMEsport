@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { doc, getDoc, collection, setDoc, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 import { Shield, CheckCircle, Loader2, Calendar, User, Phone, Mail, Award, ArrowRight, ArrowLeft } from 'lucide-react';
 import { normalizeSport } from '../../lib/sportUtils';
 
@@ -11,7 +10,7 @@ export function PublicRegistrationPage() {
   const [clubSports, setClubSports] = useState<string[]>([]);
   const [loadingClub, setLoadingClub] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
-  const [realClubId, setRealClubId] = useState(''); // Stores the actual long Firebase UID
+  const [realClubId, setRealClubId] = useState('');
 
   // Step state
   const [step, setStep] = useState(1); // 1: Player info, 2: Tutor (if minor), 3: Experience & Submit
@@ -44,22 +43,26 @@ export function PublicRegistrationPage() {
       }
       try {
         // 1. Try to fetch directly by UID
-        let clubDoc = await getDoc(doc(db, 'users', clubId));
-        let data = clubDoc.exists() ? clubDoc.data() : null;
         let actualId = clubId;
+        let { data } = await supabase
+          .from('users_profiles')
+          .select('*')
+          .eq('id', clubId)
+          .eq('role', 'club')
+          .maybeSingle();
 
         // 2. If it does not exist or isn't a club, query by username (slug)
-        if (!data || data.role !== 'club') {
-          const q = query(
-            collection(db, 'users'), 
-            where('role', '==', 'club'), 
-            where('username', '==', clubId.toLowerCase().trim())
-          );
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            clubDoc = snapshot.docs[0];
-            data = clubDoc.data() || null;
-            actualId = clubDoc.id;
+        if (!data) {
+          const { data: usernameData } = await supabase
+            .from('users_profiles')
+            .select('*')
+            .eq('role', 'club')
+            .eq('username', clubId.toLowerCase().trim())
+            .maybeSingle();
+          
+          if (usernameData) {
+            data = usernameData;
+            actualId = usernameData.id;
           }
         }
 
@@ -69,9 +72,9 @@ export function PublicRegistrationPage() {
           setRealClubId(actualId);
           setClubName(data.name || 'Club Deportivo');
           const sports = Array.from(new Set(
-            (data.activeSports && data.activeSports.length > 0
-              ? data.activeSports
-              : (data.sportType ? [data.sportType] : ['Fútbol'])
+            (data.active_sports && data.active_sports.length > 0
+              ? data.active_sports
+              : (data.sport_type ? [data.sport_type] : ['Fútbol'])
             ).map(normalizeSport)
           )) as string[];
           setClubSports(sports);
@@ -129,38 +132,70 @@ export function PublicRegistrationPage() {
     setFormLoading(true);
 
     try {
-      // Create a pending player profile in the users collection without authentication credentials
-      const tempDocRef = doc(collection(db, 'users'));
-      const pendingProfile = {
-        uid: tempDocRef.id,
-        name,
+      // 1. Sign up the user in Supabase Auth with a random password
+      const tempPassword = Math.random().toString(36).substring(2, 10) + 'A1!';
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
-        birthDate,
-        dni: dni || '',
-        phone: phone || '',
-        sportType: selectedSport,
-        isAdult,
-        tutorName: isAdult ? '' : tutorName,
-        tutorPhone: isAdult ? '' : tutorPhone,
-        tutorEmail: isAdult ? '' : tutorEmail,
-        notes: notes || '',
-        role: 'player',
-        accountType: 'jugador',
-        status: 'Pendiente',
-        createdAt: new Date().toISOString(),
-        clubId: realClubId,
-        isPreRegistration: true // flag to distinguish from manually added ones
-      };
+        password: tempPassword,
+        options: {
+          data: {
+            name,
+            username: '', // Explicit empty string so it represents a pre-registration
+            role: 'player',
+            club_id: realClubId,
+            accountType: 'jugador',
+            isAdult,
+            tutorName: isAdult ? '' : tutorName,
+            tutorPhone: isAdult ? '' : tutorPhone,
+            tutorEmail: isAdult ? '' : tutorEmail,
+            notes: notes || '',
+            status: 'Pendiente',
+            isPreRegistration: true,
+            phone: phone || '',
+            dni: dni || '',
+            birthDate
+          }
+        }
+      });
 
-      await setDoc(tempDocRef, pendingProfile);
+      if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error('Error al registrar en autenticación.');
+
+      const newUid = signUpData.user.id;
+
+      // 2. Insert the corresponding record in public.players
+      const { error: playerError } = await supabase
+        .from('players')
+        .insert({
+          id: newUid,
+          club_id: realClubId,
+          nombre: name.split(' ')[0] || name,
+          apellidos: name.split(' ').slice(1).join(' ') || '',
+          dni: dni || null,
+          fecha_nacimiento: birthDate || new Date().toISOString().split('T')[0],
+          datos_tutor: {
+            tutorName: isAdult ? '' : tutorName,
+            tutorPhone: isAdult ? '' : tutorPhone,
+            tutorEmail: isAdult ? '' : tutorEmail
+          }
+        });
+
+      if (playerError) {
+        throw playerError;
+      }
+
+      // 3. Sign out the newly registered user so we don't pollute the session
+      await supabase.auth.signOut();
+
       setSubmitted(true);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in public registration:', err);
-      alert('Hubo un problema al enviar tu solicitud de inscripción.');
+      alert('Hubo un problema al enviar tu solicitud de inscripción: ' + err.message);
     } finally {
       setFormLoading(false);
     }
   };
+
 
   if (loadingClub) {
     return (

@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Heart, Clock, FileText, CheckCircle2, Loader2 } from 'lucide-react';
 import { getInjuriesByPlayer, type Injury } from '../../lib/medicalService';
 import { useAuthStore } from '../../store/authStore';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 
 export function PlayerMedicalPage() {
   const profile = useAuthStore((s) => s.profile);
@@ -22,10 +21,20 @@ export function PlayerMedicalPage() {
 
         if (profile.accountType === 'tutor' && profile.fichaId) {
           targetPlayerId = profile.fichaId;
-          const childDoc = await getDoc(doc(db, 'users', profile.fichaId));
-          if (childDoc.exists()) {
-            const data = childDoc.data();
-            name = data.name || data.username || 'Ficha representada';
+          const { data: profileData } = await supabase
+            .from('users_profiles')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          const { data: playerData } = await supabase
+            .from('players')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          if (profileData) {
+            name = profileData.name || (playerData ? `${playerData.nombre} ${playerData.apellidos}`.trim() : '') || 'Ficha representada';
           }
         }
         setPlayerName(name);

@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { supabase } from '../lib/supabase';
 import { getEmailByUsername } from '../lib/userService';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Mail, Lock, Loader2 } from 'lucide-react';
@@ -32,7 +31,13 @@ export const Login = () => {
         loginEmail = foundEmail;
       }
 
-      await signInWithEmailAndPassword(auth, loginEmail, password);
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: loginEmail,
+        password: password,
+      });
+
+      if (signInError) throw signInError;
+
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión');
@@ -44,13 +49,16 @@ export const Login = () => {
   const handleGoogleLogin = async () => {
     setError('');
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      navigate('/dashboard');
+      const { error: oAuthError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      if (oAuthError) throw oAuthError;
     } catch (err: any) {
       setError(err.message || 'Error con Google Sign-In');
-    } finally {
       setLoading(false);
     }
   };

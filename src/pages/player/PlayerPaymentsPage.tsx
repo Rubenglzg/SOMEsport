@@ -3,8 +3,7 @@ import { CreditCard, CheckCircle, Loader2, Download, Clock, ArrowRight } from 'l
 import { useAuthStore } from '../../store/authStore';
 import { recordPayment, getPlayerPayments, type PaymentRecord } from '../../lib/paymentService';
 import { getActiveClubSeason, getActiveSeason, type Season } from '../../lib/seasonsService';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 
 export function PlayerPaymentsPage() {
   const profile = useAuthStore((state) => state.profile);
@@ -27,9 +26,35 @@ export function PlayerPaymentsPage() {
       setLoading(true);
       try {
         if (profile.accountType === 'tutor' && profile.fichaId) {
-          const childDoc = await getDoc(doc(db, 'users', profile.fichaId));
-          if (childDoc.exists()) {
-            setChildProfile(childDoc.data());
+          const { data: profileData } = await supabase
+            .from('users_profiles')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          const { data: playerData } = await supabase
+            .from('players')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          if (profileData) {
+            setChildProfile({
+              uid: profileData.id,
+              role: profileData.role,
+              clubId: profileData.club_id,
+              name: profileData.name || (playerData ? `${playerData.nombre} ${playerData.apellidos}`.trim() : ''),
+              username: profileData.username,
+              email: profileData.email,
+              accountType: profileData.account_type,
+              isAdult: profileData.is_adult,
+              status: 'Activo',
+              dni: playerData?.dni || '',
+              birthDate: playerData?.fecha_nacimiento || '',
+              tutorName: playerData?.datos_tutor?.tutorName || '',
+              tutorPhone: playerData?.datos_tutor?.tutorPhone || '',
+              tutorEmail: playerData?.datos_tutor?.tutorEmail || ''
+            });
           }
         }
 

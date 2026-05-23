@@ -1,5 +1,4 @@
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase } from './supabase';
 
 export interface AppConfig {
   minVersion: string;
@@ -11,11 +10,19 @@ export const APP_VERSION = "1.0.0"; // Versión actual de esta compilación
 
 export const getAppConfig = async (): Promise<AppConfig | null> => {
   try {
-    const docRef = doc(db, 'config', 'app_version');
-    const docSnap = await getDoc(docRef);
+    const { data, error } = await supabase
+      .from('config')
+      .select('value')
+      .eq('key', 'app_version')
+      .single();
     
-    if (docSnap.exists()) {
-      return docSnap.data() as AppConfig;
+    if (error) {
+      console.error("Error fetching app config from Supabase:", error);
+      return null;
+    }
+    
+    if (data && data.value) {
+      return data.value as unknown as AppConfig;
     }
     return null;
   } catch (error) {

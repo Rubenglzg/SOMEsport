@@ -30,16 +30,17 @@ export function ClubDashboard() {
 
   useEffect(() => {
     const load = async () => {
-      if (!profile?.uid) return;
+      const targetClubId = profile?.clubId || profile?.uid;
+      if (!targetClubId) return;
       setLoading(true);
       try {
         const [playersData, docsData, teamsData, paymentsData, eventsData, announcementsData] = await Promise.all([
-          getPlayersByClub(profile.uid),
-          getClubPendingDocuments(profile.uid),
-          getTeamsByClub(profile.uid),
-          getClubPayments(profile.uid),
-          getClubEvents(profile.uid),
-          getClubAnnouncements(profile.uid)
+          getPlayersByClub(targetClubId),
+          getClubPendingDocuments(targetClubId),
+          getTeamsByClub(targetClubId),
+          getClubPayments(targetClubId),
+          getClubEvents(targetClubId),
+          getClubAnnouncements(targetClubId)
         ]);
         setPlayers(playersData);
         setPendingDocsCount(docsData.length);
@@ -57,7 +58,7 @@ export function ClubDashboard() {
       }
     };
     load();
-  }, [profile?.uid]);
+  }, [profile?.uid, profile?.clubId]);
 
   const pendingPlayers = players.filter(p => p.status === 'Pendiente');
   const activePlayers = players.filter(p => p.status === 'Activo' || p.status === 'Aprobada');

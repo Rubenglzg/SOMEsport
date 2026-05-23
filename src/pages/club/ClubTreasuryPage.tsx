@@ -21,14 +21,15 @@ export function ClubTreasuryPage() {
 
   useEffect(() => {
     const load = async () => {
-      if (!profile?.uid) return;
+      const targetClubId = profile?.clubId || profile?.uid;
+      if (!targetClubId) return;
       setLoading(true);
       try {
         const [playersData, teamsData, paymentsData, clubSeasonsData, globalSeasonsData] = await Promise.all([
-          getPlayersByClub(profile.uid),
-          getTeamsByClub(profile.uid),
-          getClubPayments(profile.uid),
-          getClubSeasons(profile.uid),
+          getPlayersByClub(targetClubId),
+          getTeamsByClub(targetClubId),
+          getClubPayments(targetClubId),
+          getClubSeasons(targetClubId),
           getSeasons()
         ]);
         setPlayers(playersData.filter(p => p.accountType === 'jugador'));
@@ -49,7 +50,7 @@ export function ClubTreasuryPage() {
       }
     };
     load();
-  }, [profile?.uid]);
+  }, [profile?.clubId, profile?.uid]);
 
   const currentSeason = seasons.find(s => s.id === selectedSeasonId);
   const seasonName = currentSeason?.name || 'Temporada Actual';
@@ -102,7 +103,8 @@ export function ClubTreasuryPage() {
   }).length;
 
   const handleManualPayment = async (playerId: string, installmentName?: string, amount?: number) => {
-    if (!profile?.uid || !currentSeason) return;
+    const targetClubId = profile?.clubId || profile?.uid;
+    if (!targetClubId || !currentSeason) return;
     const player = players.find(p => p.uid === playerId);
     if (!player) return;
 
@@ -112,8 +114,8 @@ export function ClubTreasuryPage() {
 
     setLoading(true);
     try {
-      await recordPayment(playerId, profile.uid, payAmount, seasonName, installmentName);
-      const paymentsData = await getClubPayments(profile.uid);
+      await recordPayment(playerId, targetClubId, payAmount, seasonName, installmentName);
+      const paymentsData = await getClubPayments(targetClubId);
       setPayments(paymentsData);
     } catch (error) {
       console.error("Error recording manual payment:", error);

@@ -1,5 +1,4 @@
-import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase } from './supabase';
 
 export interface PaymentRecord {
   id?: string;
@@ -19,33 +18,102 @@ export const recordPayment = async (
   season: string,
   installmentName?: string
 ): Promise<PaymentRecord> => {
-  const newPayment: Omit<PaymentRecord, 'id'> = {
-    userId,
-    clubId,
-    amount,
+  const concepto = installmentName || 'Cuota mensual / Pago completo';
+
+  const { data, error } = await supabase
+    .from('payments')
+    .insert({
+      player_id: userId,
+      club_id: clubId,
+      concepto,
+      importe: amount,
+      estado_pago: 'pagado',
+      fecha_vencimiento: new Date().toISOString().split('T')[0]
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("Error recording payment:", error.message);
+    throw error;
+  }
+
+  return {
+    id: data.id,
+    userId: data.player_id,
+    clubId: data.club_id,
+    amount: Number(data.importe),
     season,
     status: 'paid',
-    paidAt: new Date().toISOString(),
-    ...(installmentName ? { installmentName } : {})
+    paidAt: data.created_at,
+    installmentName: data.concepto
   };
-  
-  const docRef = await addDoc(collection(db, 'payments'), newPayment);
-  return { id: docRef.id, ...newPayment };
 };
 
 export const getPlayerPayments = async (userId: string): Promise<PaymentRecord[]> => {
-  const q = query(collection(db, 'payments'), where('userId', '==', userId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentRecord));
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('player_id', userId);
+
+  if (error) {
+    console.error("Error getting player payments:", error.message);
+    throw error;
+  }
+
+  return (data || []).map((p: any) => ({
+    id: p.id,
+    userId: p.player_id,
+    clubId: p.club_id,
+    amount: Number(p.importe),
+    season: '2025/2026',
+    status: 'paid',
+    paidAt: p.created_at,
+    installmentName: p.concepto
+  } as PaymentRecord));
 };
 
 export const getClubPayments = async (clubId: string): Promise<PaymentRecord[]> => {
-  const q = query(collection(db, 'payments'), where('clubId', '==', clubId));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentRecord));
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*')
+    .eq('club_id', clubId);
+
+  if (error) {
+    console.error("Error getting club payments:", error.message);
+    throw error;
+  }
+
+  return (data || []).map((p: any) => ({
+    id: p.id,
+    userId: p.player_id,
+    clubId: p.club_id,
+    amount: Number(p.importe),
+    season: '2025/2026',
+    status: 'paid',
+    paidAt: p.created_at,
+    installmentName: p.concepto
+  } as PaymentRecord));
 };
 
 export const getAllPayments = async (): Promise<PaymentRecord[]> => {
-  const snapshot = await getDocs(collection(db, 'payments'));
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as PaymentRecord));
+  const { data, error } = await supabase
+    .from('payments')
+    .select('*');
+
+  if (error) {
+    console.error("Error getting all payments:", error.message);
+    throw error;
+  }
+
+  return (data || []).map((p: any) => ({
+    id: p.id,
+    userId: p.player_id,
+    clubId: p.club_id,
+    amount: Number(p.importe),
+    season: '2025/2026',
+    status: 'paid',
+    paidAt: p.created_at,
+    installmentName: p.concepto
+  } as PaymentRecord));
 };

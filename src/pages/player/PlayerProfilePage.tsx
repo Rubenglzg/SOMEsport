@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { User as UserIcon, Shield } from 'lucide-react';
 import { useAuthStore, type UserProfile } from '../../store/authStore';
-import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../lib/firebase';
+import { supabase } from '../../lib/supabase';
 
 export function PlayerProfilePage() {
   const profile = useAuthStore((state) => state.profile);
@@ -12,12 +11,38 @@ export function PlayerProfilePage() {
     const loadChild = async () => {
       if (profile?.accountType === 'tutor' && profile.fichaId) {
         try {
-          const childDoc = await getDoc(doc(db, 'users', profile.fichaId));
-          if (childDoc.exists()) {
-            setChildProfile(childDoc.data() as UserProfile);
+          const { data: profileData } = await supabase
+            .from('users_profiles')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          const { data: playerData } = await supabase
+            .from('players')
+            .select('*')
+            .eq('id', profile.fichaId)
+            .maybeSingle();
+
+          if (profileData) {
+            setChildProfile({
+              uid: profileData.id,
+              role: profileData.role,
+              clubId: profileData.club_id,
+              name: profileData.name || (playerData ? `${playerData.nombre} ${playerData.apellidos}`.trim() : ''),
+              username: profileData.username,
+              email: profileData.email,
+              accountType: profileData.account_type,
+              isAdult: profileData.is_adult,
+              status: 'Activo',
+              dni: playerData?.dni || '',
+              birthDate: playerData?.fecha_nacimiento || '',
+              tutorName: playerData?.datos_tutor?.tutorName || '',
+              tutorPhone: playerData?.datos_tutor?.tutorPhone || '',
+              tutorEmail: playerData?.datos_tutor?.tutorEmail || ''
+            });
           }
         } catch (e) {
-          console.error("Error loading child profile:", e);
+          console.error("Error loading child profile from Supabase:", e);
         }
       }
     };

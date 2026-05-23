@@ -1,5 +1,4 @@
-import { collection, addDoc, getDocs, doc, deleteDoc, updateDoc, arrayUnion } from 'firebase/firestore';
-import { db } from './firebase';
+import { supabase } from './supabase';
 import type { UserProfile } from '../store/authStore';
 
 export interface Announcement {
@@ -18,29 +17,101 @@ export interface Announcement {
   readBy?: string[];         // List of user UIDs who have marked this announcement as read
 }
 
+const mapRowToAnnouncement = (row: any): Announcement => ({
+  id: row.id,
+  title: row.title,
+  body: row.body,
+  authorId: row.author_id,
+  authorName: row.author_name,
+  scope: row.scope as 'global' | 'club',
+  clubId: row.club_id || undefined,
+  createdAt: row.created_at,
+  pinned: row.pinned,
+  imageURL: row.image_url || undefined,
+  targetClubs: row.target_clubs || [],
+  targetAudience: row.target_audience || [],
+  readBy: row.read_by || []
+});
+
+const mapAnnouncementToRow = (data: Partial<Announcement>): any => {
+  const row: any = {};
+  if (data.title !== undefined) row.title = data.title;
+  if (data.body !== undefined) row.body = data.body;
+  if (data.authorId !== undefined) row.author_id = data.authorId;
+  if (data.authorName !== undefined) row.author_name = data.authorName;
+  if (data.scope !== undefined) row.scope = data.scope;
+  if (data.clubId !== undefined) row.club_id = data.clubId || null;
+  if (data.pinned !== undefined) row.pinned = data.pinned;
+  if (data.imageURL !== undefined) row.image_url = data.imageURL || null;
+  if (data.targetClubs !== undefined) row.target_clubs = data.targetClubs || [];
+  if (data.targetAudience !== undefined) row.target_audience = data.targetAudience || [];
+  if (data.readBy !== undefined) row.read_by = data.readBy || [];
+  return row;
+};
+
 export const createAnnouncement = async (data: Omit<Announcement, 'id'>): Promise<Announcement> => {
-  const docRef = await addDoc(collection(db, 'announcements'), data);
-  return { id: docRef.id, ...data };
+  const now = new Date().toISOString();
+  const insertData = {
+    ...mapAnnouncementToRow(data),
+    created_at: now
+  };
+
+  const { data: inserted, error } = await supabase
+    .from('announcements')
+    .insert(insertData)
+    .select('*')
+    .single();
+
+  if (error) {
+    console.error("Error creating announcement in Supabase:", error);
+    throw error;
+  }
+
+  return mapRowToAnnouncement(inserted);
 };
 
 export const getGlobalAnnouncements = async (): Promise<Announcement[]> => {
-  const allAnnouncementsSnapshot = await getDocs(collection(db, 'announcements'));
-  const announcements = allAnnouncementsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
-  const global = announcements.filter(a => a.scope === 'global');
-  return global.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .eq('scope', 'global')
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching global announcements from Supabase:", error);
+    return [];
+  }
+  return (data || []).map(mapRowToAnnouncement);
 };
 
 export const getClubAnnouncements = async (clubId: string): Promise<Announcement[]> => {
-  const allAnnouncementsSnapshot = await getDocs(collection(db, 'announcements'));
-  const announcements = allAnnouncementsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
-  const club = announcements.filter(a => a.scope === 'club' && a.clubId === clubId);
-  return club.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*')
+    .eq('scope', 'club')
+    .eq('club_id', clubId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    console.error("Error fetching club announcements from Supabase:", error);
+    return [];
+  }
+  return (data || []).map(mapRowToAnnouncement);
 };
 
 export const getAnnouncementsForUser = async (profile: UserProfile): Promise<Announcement[]> => {
   if (!profile) return [];
-  const allAnnouncementsSnapshot = await getDocs(collection(db, 'announcements'));
-  const all = allAnnouncementsSnapshot.docs.map(d => ({ id: d.id, ...d.data() } as Announcement));
+  
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('*');
+
+  if (error) {
+    console.error("Error fetching announcements for user from Supabase:", error);
+    return [];
+  }
+
+  const all = (data || []).map(mapRowToAnnouncement);
   
   const userRole = profile.role || 'player';
   const userClubId = profile.clubId || profile.uid; // For clubs, uid is their identifier
@@ -63,7 +134,6 @@ export const getAnnouncementsForUser = async (profile: UserProfile): Promise<Ann
     
     // Check audience filters:
     if (a.targetAudience && a.targetAudience.length > 0) {
-      // Determine what tags the user qualifies for
       const userTags: string[] = [];
       if (userRole === 'club') {
         userTags.push('presidentes');
@@ -87,7 +157,6 @@ export const getAnnouncementsForUser = async (profile: UserProfile): Promise<Ann
         }
       }
       
-      // The user must have at least one matching tag in targetAudience
       const hasMatch = a.targetAudience.some(tag => userTags.includes(tag));
       if (!hasMatch) {
         return false;
@@ -105,8 +174,6 @@ export const getAnnouncementsForUser = async (profile: UserProfile): Promise<Ann
 };
 
 export const getPlayerAnnouncements = async (clubId: string): Promise<Announcement[]> => {
-  // Backwards compatibility or direct player page call
-  // This fallback returns all announcements for that club (both global + club specific)
   const [global, club] = await Promise.all([
     getGlobalAnnouncements(),
     getClubAnnouncements(clubId)
@@ -115,17 +182,52 @@ export const getPlayerAnnouncements = async (clubId: string): Promise<Announceme
 };
 
 export const updateAnnouncement = async (id: string, data: Partial<Announcement>): Promise<void> => {
-  await updateDoc(doc(db, 'announcements', id), data);
+  const { error } = await supabase
+    .from('announcements')
+    .update(mapAnnouncementToRow(data))
+    .eq('id', id);
+
+  if (error) {
+    console.error("Error updating announcement in Supabase:", error);
+    throw error;
+  }
 };
 
 export const deleteAnnouncement = async (id: string): Promise<void> => {
-  await deleteDoc(doc(db, 'announcements', id));
+  const { error } = await supabase
+    .from('announcements')
+    .delete()
+    .eq('id', id);
+
+  if (error) {
+    console.error("Error deleting announcement from Supabase:", error);
+    throw error;
+  }
 };
 
 export const markAnnouncementAsRead = async (announcementId: string, userId: string): Promise<void> => {
-  await updateDoc(doc(db, 'announcements', announcementId), {
-    readBy: arrayUnion(userId)
-  });
+  const { data, error } = await supabase
+    .from('announcements')
+    .select('read_by')
+    .eq('id', announcementId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching announcement read_by list:", error);
+    throw error;
+  }
+
+  const currentReadBy: string[] = data.read_by || [];
+  if (!currentReadBy.includes(userId)) {
+    const updatedReadBy = [...currentReadBy, userId];
+    const { error: updateError } = await supabase
+      .from('announcements')
+      .update({ read_by: updatedReadBy })
+      .eq('id', announcementId);
+
+    if (updateError) {
+      console.error("Error marking announcement as read in Supabase:", updateError);
+      throw updateError;
+    }
+  }
 };
-
-

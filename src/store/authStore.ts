@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { User } from 'firebase/auth';
+import type { User } from '@supabase/supabase-js';
 
 export type UserRole = 'admin' | 'club' | 'player' | 'staff';
 

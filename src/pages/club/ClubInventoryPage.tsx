@@ -42,7 +42,7 @@ export function ClubInventoryPage() {
   const [loanCoachId, setLoanCoachId] = useState('');
   const [loanQuantity, setLoanQuantity] = useState(1);
 
-  const clubId = profile?.role === 'club' ? profile?.uid : profile?.clubId;
+  const clubId = profile?.clubId || profile?.uid;
 
   // --- Permisos del Personal (Staff) ---
   const staffPerm = profile?.role === 'staff' ? profile.staffPermissions?.inventory : null;
