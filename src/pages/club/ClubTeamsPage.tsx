@@ -14,6 +14,7 @@ export function ClubTeamsPage() {
 
   const [showTeamModal, setShowTeamModal] = useState(false);
   const [newTeamName, setNewTeamName] = useState('');
+  const [newTeamCategory, setNewTeamCategory] = useState('');
   const [newTeamSport, setNewTeamSport] = useState(profile?.activeSports?.[0] || 'Fútbol');
   const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
   
@@ -61,9 +62,10 @@ export function ClubTeamsPage() {
     if (!targetClubId || profile?.role === 'staff') return;
     setFormLoading(true);
     try {
-      await createTeam(targetClubId, newTeamName, 'Sin categoría', newTeamSport);
+      await createTeam(targetClubId, newTeamName, newTeamCategory || 'Sin categoría', newTeamSport);
       setShowTeamModal(false);
       setNewTeamName('');
+      setNewTeamCategory('');
       await loadData();
     } catch (error) {
       console.error("Error creating team:", error);
@@ -305,6 +307,10 @@ export function ClubTeamsPage() {
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Nombre del Equipo</label>
                 <input type="text" required value={newTeamName} onChange={(e) => setNewTeamName(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Ej. Cadete A" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1.5">Categoría</label>
+                <input type="text" required value={newTeamCategory} onChange={(e) => setNewTeamCategory(e.target.value)} className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-brand-500 outline-none transition-all" placeholder="Ej. Alevín, Infantil, Senior" />
               </div>
               {(() => {
                 const sportsList = Array.from(new Set(

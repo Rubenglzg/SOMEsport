@@ -280,7 +280,14 @@ export function ClubCalendarPage() {
   const staffFilteredEvents = events.filter(e => {
     if (!isStaff) return true;
     if (calendarAccessLevel === 'assigned') {
-      return e.teamId === profile?.teamId;
+      if (!e.teamId) return false;
+      const eventTeam = teams.find(t => t.id === e.teamId);
+      
+      const matchesSingleTeam = e.teamId === profile?.teamId;
+      const matchesTeamIds = profile?.teamIds && profile.teamIds.includes(e.teamId);
+      const matchesCategory = eventTeam && profile?.category && eventTeam.category === profile.category;
+      
+      return matchesSingleTeam || matchesTeamIds || matchesCategory;
     } else {
       if (!e.teamId) return true; // Mostrar globales del club
       const eventTeam = teams.find(t => t.id === e.teamId);

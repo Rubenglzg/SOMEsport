@@ -20,6 +20,7 @@ import { AdminSeasonsPage } from './pages/admin/AdminSeasonsPage';
 import { AdminTreasuryPage } from './pages/admin/AdminTreasuryPage';
 import { AdminSupportPage } from './pages/admin/AdminSupportPage';
 import { UserSupportPage } from './pages/shared/UserSupportPage';
+import { LeaguePage } from './pages/shared/LeaguePage';
 
 // Club Pages
 import { ClubSettingsPage } from './pages/club/ClubSettingsPage';
@@ -108,6 +109,7 @@ function App() {
               <Route path="my-medical" element={<PlayerMedicalPage />} />
 
               {/* Shared */}
+              <Route path="league" element={<LeaguePage />} />
               <Route path="settings" element={<Settings />} />
               <Route path="helpdesk" element={<UserSupportPage />} />
             </Route>

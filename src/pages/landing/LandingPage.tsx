@@ -88,9 +88,9 @@ const LandingPage = () => {
 
       {/* Navigation */}
       <header className="fixed top-0 w-full z-50 bg-[#F8FAFC]/80 backdrop-blur-xl border-b border-slate-200/50 transition-all duration-300">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between relative">
+        <div className="max-w-7xl mx-auto px-6 h-32 flex items-center justify-between relative">
           <div className="flex items-center gap-3 group cursor-pointer">
-            <img src="/logoSOMEsport.png" alt="SOM Esport Logo" className="h-12 group-hover:scale-105 transition-transform duration-300 drop-shadow-sm" />
+            <img src="/LogoAvantiaSystems.png" alt="Avantia Systems Logo" className="group-hover:scale-105 transition-transform duration-300 drop-shadow-sm" style={{ height: '55px', width: 'auto' }} />
           </div>
 
           <nav aria-label="Main Navigation" className="hidden lg:flex items-center gap-8 text-sm font-bold text-slate-600 absolute left-1/2 -translate-x-1/2">
@@ -111,7 +111,7 @@ const LandingPage = () => {
       </header>
 
       {/* MAIN CONTENT WRAPPER */}
-      <main className="w-full max-w-7xl px-4 sm:px-6 flex flex-col gap-24 sm:gap-32 pb-32 pt-32 relative">
+      <main className="w-full max-w-7xl px-4 sm:px-6 flex flex-col gap-24 sm:gap-32 pb-32 pt-44 relative">
 
         {/* Global ambient background */}
         <div className="fixed inset-0 pointer-events-none z-[-1]">
@@ -560,11 +560,13 @@ const LandingPage = () => {
       <footer className="w-full py-8 border-t border-slate-200 bg-white" aria-label="Pie de página">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-3">
-            <img src="/logoSOMEsport.png" alt="SOM Esport Logo" className="h-12 opacity-100" />
+            <img src="/LogoAvantiaSystems.png" alt="Avantia Systems Logo" className="opacity-100" style={{ height: '65px', width: 'auto' }} />
           </div>
-          <p className="text-slate-500 text-sm font-medium">
-            © {new Date().getFullYear()} SOM Esport. Plataforma de gestión deportiva.
-          </p>
+          <div className="flex flex-col items-center md:items-start gap-2">
+            <p className="text-slate-500 text-sm font-medium">
+              © {new Date().getFullYear()} SOM Esport. Plataforma de gestión deportiva.
+            </p>
+          </div>
           <div className="flex gap-6 text-sm font-medium text-slate-500">
             <Link to="/privacidad" className="hover:text-emerald-600 transition-colors">Privacidad</Link>
             <Link to="/terminos" className="hover:text-emerald-600 transition-colors">Términos</Link>

@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { getEmailByUsername } from '../lib/userService';
-import { useNavigate } from 'react-router-dom';
-import { Shield, Mail, Lock, Loader2 } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Mail, Lock, Loader2, ArrowLeft } from 'lucide-react';
 
 export const Login = () => {
   const [email, setEmail] = useState('');
@@ -65,17 +65,25 @@ export const Login = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden">
+      {/* Botón Volver a la Landing */}
+      <div className="absolute top-6 left-6 z-20">
+        <Link
+          to="/"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-slate-700 transition-all shadow-sm"
+        >
+          <ArrowLeft className="w-4.5 h-4.5" /> Volver al Inicio
+        </Link>
+      </div>
+
       {/* Elementos decorativos de fondo */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-brand-500/20 blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-600/20 blur-[120px] pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-md relative z-10">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 bg-brand-500/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-brand-500/20 shadow-[0_0_15px_rgba(16,185,129,0.3)]">
-            <Shield className="w-8 h-8 text-brand-500" />
-          </div>
+        <div className="flex justify-center mb-6">
+          <img src="/LogoSooner.png" alt="Sooner Logo" className="object-contain drop-shadow-2xl" style={{ height: '100px', width: 'auto' }} />
         </div>
-        <h2 className="mt-6 text-center text-3xl font-extrabold text-white tracking-tight">
+        <h2 className="mt-4 text-center text-3xl font-extrabold text-white tracking-tight">
           Sooner <span className="text-brand-500 font-light">Platform</span>
         </h2>
         <p className="mt-2 text-center text-sm text-slate-400">

@@ -20,7 +20,8 @@ import {
   Wallet,
   HelpCircle,
   Heart,
-  Package
+  Package,
+  Trophy
 } from 'lucide-react';
 import clsx from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -54,6 +55,7 @@ const navItems: NavItem[] = [
   { icon: Users, label: 'Cuerpo Técnico', path: '/dashboard/staff', roles: ['club'] },
   { icon: FileCheck, label: 'Documentos', path: '/dashboard/documents', roles: ['club'] },
   { icon: Shield, label: 'Equipos', path: '/dashboard/teams', roles: ['club'] },
+  { icon: Trophy, label: 'Liga y Torneos', path: '/dashboard/league', roles: ['club'] },
   { icon: CreditCard, label: 'Tesorería', path: '/dashboard/treasury', roles: ['club'] },
   { icon: CalendarDays, label: 'Instalaciones', path: '/dashboard/facilities', roles: ['club'] },
   { icon: Activity, label: 'Lesiones y Salud', path: '/dashboard/injuries', roles: ['club'] },
@@ -70,6 +72,7 @@ const navItems: NavItem[] = [
   { icon: FileText, label: 'Mis Documentos', path: '/dashboard/my-documents', roles: ['player'], section: 'Mi Ficha' },
   { icon: CreditCard, label: 'Mis Pagos', path: '/dashboard/my-payments', roles: ['player'] },
   { icon: Users, label: 'Mi Equipo', path: '/dashboard/my-team', roles: ['player'] },
+  { icon: Trophy, label: 'Liga y Torneos', path: '/dashboard/league', roles: ['player'] },
   { icon: UserIcon, label: 'Mis Datos', path: '/dashboard/my-profile', roles: ['player'] },
   { icon: Heart, label: 'Mi Ficha Médica', path: '/dashboard/my-medical', roles: ['player'] },
   { icon: CalendarDays, label: 'Calendario', path: '/dashboard/my-calendar', roles: ['player'], section: 'Club' },
@@ -81,6 +84,7 @@ const navItems: NavItem[] = [
   // --- Staff (Coaches / Directors) ---
   { icon: LayoutDashboard, label: 'Panel Técnico', path: '/dashboard', roles: ['staff'], section: 'General' },
   { icon: Shield, label: 'Mis Equipos', path: '/dashboard/teams', roles: ['staff'], section: 'Gestión' },
+  { icon: Trophy, label: 'Liga y Torneos', path: '/dashboard/league', roles: ['staff'] },
   { icon: CalendarDays, label: 'Instalaciones', path: '/dashboard/facilities', roles: ['staff'] },
   { icon: Activity, label: 'Lesiones y Salud', path: '/dashboard/injuries', roles: ['staff'] },
   { icon: Package, label: 'Material e Inventario', path: '/dashboard/inventory', roles: ['staff'] },
@@ -143,9 +147,7 @@ export function Sidebar() {
         </div>
         <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/90 to-transparent"></div>
         <div className="flex items-center gap-3 relative z-10">
-          <div className="w-11 h-11 rounded-xl bg-brand-600 flex items-center justify-center text-white font-black text-xl shadow-lg shadow-brand-500/30 border border-brand-500">
-            S
-          </div>
+          <img src="/LogoSooner.png" alt="Sooner Logo" className="object-contain drop-shadow" style={{ height: '60px', width: 'auto' }} />
           <div>
             <span className="text-xl font-black tracking-tight block leading-none">Sooner</span>
             <span className="text-xs text-brand-400 font-bold uppercase tracking-widest mt-1 block">
@@ -191,13 +193,17 @@ export function Sidebar() {
         ))}
       </div>
 
-      <div className="p-4 border-t border-slate-200">
-        <div className="bg-slate-50 rounded-xl p-4">
+      <div className="p-4 border-t border-slate-200 flex flex-col gap-4">
+        <div className="bg-slate-50 rounded-xl p-4 shadow-sm border border-slate-100">
           <p className="text-xs text-slate-500 font-medium mb-1">Soporte Técnico</p>
           <p className="text-xs text-slate-400 mb-3">¿Necesitas ayuda con las fichas?</p>
-          <button className="w-full text-xs font-medium bg-white border border-slate-200 text-slate-700 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">
+          <button className="w-full text-xs font-semibold bg-white border border-slate-200 text-slate-700 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition-colors">
             Contactar
           </button>
+        </div>
+        <div className="flex flex-col items-center gap-1.5 pt-1 border-t border-slate-100">
+          <span className="text-[9px] uppercase tracking-wider text-slate-400 font-extrabold">Desarrollado por</span>
+          <img src="/LogoAvantiaSystems.png" alt="Avantia Systems Logo" className="opacity-70 hover:opacity-100 transition-opacity duration-300" style={{ height: '32px', width: 'auto' }} />
         </div>
       </div>
     </aside>
